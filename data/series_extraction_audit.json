@@ -1,23 +1,13 @@
 {
-  "pasta": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pnad",
+  "pasta": "/app/pnad",
   "arquivos_disponiveis": [
-    "pnadc_202501_trimestre_quadroSintetico.pdf",
-    "pnadc_202502_trimestre_quadroSintetico.pdf",
-    "pnadc_202503_trimestre_quadroSintetico.pdf",
-    "pnadc_202504_trimestre_quadroSintetico.pdf",
-    "pnadc_202601_trimestre_quadroSintetico.pdf"
+    "pnadc_202404_trimestre_quadroSintetico.pdf"
   ],
   "arquivos_usados": [
-    "pnadc_202502_trimestre_quadroSintetico.pdf",
-    "pnadc_202503_trimestre_quadroSintetico.pdf",
-    "pnadc_202504_trimestre_quadroSintetico.pdf",
-    "pnadc_202601_trimestre_quadroSintetico.pdf"
+    "pnadc_202404_trimestre_quadroSintetico.pdf"
   ],
   "periodos": [
-    "abr-mai-jun/2025",
-    "jul-ago-set/2025",
-    "out-nov-dez/2025",
-    "jan-fev-mar/2026"
+    "out-nov-dez/2024"
   ],
   "indicadores": [
     "Desocupadas",
@@ -37,11 +27,7 @@
     "Taxa de participação na força de trabalho",
     "Trabalhadores por conta própria"
   ],
-  "linhas_csv": 64,
-  "trimestre_atual": "jan-fev-mar/2026",
-  "tres_anteriores": [
-    "abr-mai-jun/2025",
-    "jul-ago-set/2025",
-    "out-nov-dez/2025"
-  ]
+  "linhas_csv": 16,
+  "trimestre_atual": "out-nov-dez/2024",
+  "tres_anteriores": []
 }
