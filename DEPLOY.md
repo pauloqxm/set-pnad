@@ -73,7 +73,7 @@ Confirme que os três CSVs de `data/` estão no commit.
 |----------|---------|-----------|
 | `ADMIN_UPLOAD_TOKEN` | `uma-senha-forte` | Libera a aba Atualizar dados |
 | `GITHUB_TOKEN` | `ghp_...` | PAT com escrita no repositório |
-| `GITHUB_REPO` | `pauloqxm/set-pnad` | Repositório destino |
+| `GITHUB_REPO` | `pauloqxm/set-pnad` | Opcional (já é o padrão) |
 | `GITHUB_BRANCH` | `main` | Branch (padrão `main`) |
 | `GITHUB_PUSH_PDFS` | `1` | `0` para não versionar o PDF |
 

@@ -1499,10 +1499,10 @@ _update_children.append(
                 mb="md",
             ),
             dmc.Text(
-                "Para habilitar o envio ao GitHub, defina GITHUB_TOKEN e GITHUB_REPO "
-                "nas variáveis de ambiente (Railway → Variables)."
+                "Para publicar no GitHub, defina GITHUB_TOKEN no Railway "
+                f"(repositório: {data_update.DEFAULT_GITHUB_REPO})."
                 if not data_update.github_configured()
-                else "GitHub pronto: o push usará GITHUB_REPO / GITHUB_BRANCH.",
+                else f"GitHub pronto — envio para {data_update.github_repo()}.",
                 size="xs",
                 c="dimmed",
                 mb="md",
@@ -1795,18 +1795,19 @@ def process_pdf_upload(n_clicks, contents, filename, token, push_github):
     if result.get("github"):
         if result["github"].get("skipped"):
             details.append(
-                dmc.Text(
-                    "GitHub: não configurado (GITHUB_TOKEN / GITHUB_REPO). "
-                    "CSVs atualizados apenas neste servidor.",
-                    size="xs",
-                    c="orange",
-                    mt="xs",
+                dmc.Alert(
+                    "Os CSVs e o PDF ficaram só no servidor Railway. "
+                    "No GitHub (pauloqxm/set-pnad) nada foi alterado porque "
+                    "GITHUB_TOKEN não está configurado.",
+                    color="orange",
+                    title="Não publicado no GitHub",
+                    mt="sm",
                 )
             )
         else:
             details.append(
                 dmc.Text(
-                    "GitHub ("
+                    "Publicado no GitHub ("
                     + result["github"]["repo"]
                     + "@"
                     + result["github"]["branch"]
@@ -1817,7 +1818,12 @@ def process_pdf_upload(n_clicks, contents, filename, token, push_github):
                     mt="xs",
                 )
             )
-    return dmc.Alert(details, color="teal", title="Atualização concluída")
+    title = "Atualização concluída"
+    color = "teal"
+    if result.get("github", {}).get("skipped"):
+        title = "Atualizado no servidor (GitHub pendente)"
+        color = "yellow"
+    return dmc.Alert(details, color=color, title=title)
 
 
 if __name__ == "__main__":

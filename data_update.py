@@ -17,6 +17,7 @@ import extract_series
 BASE_DIR = Path(__file__).resolve().parent
 PNAD_DIR = BASE_DIR / "pnad"
 DATA_DIR = BASE_DIR / "data"
+DEFAULT_GITHUB_REPO = "pauloqxm/set-pnad"
 
 PDF_NAME_RE = re.compile(
     r"^pnadc_\d{6}_trimestre_quadroSintetico\.pdf$",
@@ -36,10 +37,11 @@ def upload_enabled() -> bool:
 
 
 def github_configured() -> bool:
-    return bool(
-        os.environ.get("GITHUB_TOKEN", "").strip()
-        and os.environ.get("GITHUB_REPO", "").strip()
-    )
+    return bool(os.environ.get("GITHUB_TOKEN", "").strip())
+
+
+def github_repo() -> str:
+    return os.environ.get("GITHUB_REPO", DEFAULT_GITHUB_REPO).strip() or DEFAULT_GITHUB_REPO
 
 
 def validate_token(token: str | None) -> bool:
@@ -146,7 +148,7 @@ def push_file_to_github(
     message: str,
 ) -> str:
     token = os.environ["GITHUB_TOKEN"].strip()
-    repo = os.environ["GITHUB_REPO"].strip()
+    repo = github_repo()
     branch = os.environ.get("GITHUB_BRANCH", "main").strip() or "main"
 
     existing = _github_get_file(repo, repo_path, branch, token)
@@ -176,7 +178,8 @@ def push_file_to_github(
 def push_updates_to_github(pdf_path: Path | None = None) -> list[str]:
     if not github_configured():
         raise RuntimeError(
-            "GitHub não configurado. Defina GITHUB_TOKEN e GITHUB_REPO."
+            "GitHub não configurado. Defina GITHUB_TOKEN no Railway "
+            f"(repositório padrão: {DEFAULT_GITHUB_REPO})."
         )
 
     pushed: list[str] = []
@@ -234,18 +237,24 @@ def process_upload(
         if not github_configured():
             result["github"] = {"skipped": True, "motivo": "nao_configurado"}
             result["aviso"] += (
-                " Envio ao GitHub foi solicitado, mas GITHUB_TOKEN e GITHUB_REPO "
-                "não estão definidos — os CSVs foram atualizados só neste servidor. "
-                "No Railway, configure essas variáveis para publicar no repositório."
+                " Os dados foram atualizados só neste servidor (Railway). "
+                "Para aparecer no GitHub, configure GITHUB_TOKEN no Railway "
+                f"e reenvie o PDF (repo: {DEFAULT_GITHUB_REPO})."
             )
         else:
             result["github"] = {
                 "arquivos": push_updates_to_github(pdf_path),
-                "repo": os.environ.get("GITHUB_REPO", ""),
+                "repo": github_repo(),
                 "branch": os.environ.get("GITHUB_BRANCH", "main"),
             }
             result["aviso"] += (
                 " Arquivos enviados ao GitHub; se o Railway estiver conectado ao "
                 "repositório, um novo deploy deve ocorrer em seguida."
             )
+    elif not github_configured():
+        result["github"] = {"skipped": True, "motivo": "nao_configurado"}
+        result["aviso"] += (
+            f" Nada foi enviado ao GitHub ({DEFAULT_GITHUB_REPO}). "
+            "Configure GITHUB_TOKEN no Railway para publicar automaticamente."
+        )
     return result
