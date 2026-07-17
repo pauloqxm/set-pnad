@@ -36,8 +36,20 @@ def upload_enabled() -> bool:
     return bool(os.environ.get("ADMIN_UPLOAD_TOKEN", "").strip())
 
 
+def _github_token() -> str:
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    # Railway às vezes cola o valor com aspas.
+    if len(token) >= 2 and token[0] == token[-1] and token[0] in {"'", '"'}:
+        token = token[1:-1].strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+    if token.lower().startswith("token "):
+        token = token[6:].strip()
+    return token
+
+
 def github_configured() -> bool:
-    return bool(os.environ.get("GITHUB_TOKEN", "").strip())
+    return bool(_github_token())
 
 
 def github_repo() -> str:
@@ -124,7 +136,58 @@ def _github_headers(token: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "set-pnad-dashboard",
     }
+
+
+def _format_github_http_error(response: requests.Response, *, context: str) -> str:
+    status = response.status_code
+    body = (response.text or "")[:300]
+    if status == 401:
+        return (
+            f"{context}: 401 Unauthorized. O GITHUB_TOKEN é inválido, expirou "
+            "ou foi colado com espaços/aspas. Crie um novo PAT em "
+            "GitHub → Settings → Developer settings → Personal access tokens "
+            "com Contents: Read and write no repositório "
+            f"{github_repo()}, atualize a variável no Railway e faça redeploy."
+        )
+    if status == 403:
+        return (
+            f"{context}: 403 Forbidden. O token não tem permissão de escrita "
+            f"em {github_repo()}. No PAT fine-grained: Repository access = "
+            "este repo e Contents = Read and write. No classic: escopo `repo`."
+        )
+    if status == 404:
+        return (
+            f"{context}: 404 Not Found. Confira GITHUB_REPO "
+            f"(atual: {github_repo()}) e se o token enxerga esse repositório."
+        )
+    return f"{context}: HTTP {status} — {body}"
+
+
+def verify_github_access() -> None:
+    token = _github_token()
+    if not token:
+        raise RuntimeError(
+            "GitHub não configurado. Defina GITHUB_TOKEN no Railway "
+            f"(repositório padrão: {DEFAULT_GITHUB_REPO})."
+        )
+    repo = github_repo()
+    response = requests.get(
+        f"https://api.github.com/repos/{repo}",
+        headers=_github_headers(token),
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(
+            _format_github_http_error(response, context="Falha ao validar acesso ao GitHub")
+        )
+    perms = (response.json() or {}).get("permissions") or {}
+    if perms and not perms.get("push", False):
+        raise RuntimeError(
+            f"O token acessa {repo}, mas sem permissão de push (Contents: Write). "
+            "Ajuste o PAT e tente de novo."
+        )
 
 
 def _github_get_file(repo: str, path: str, branch: str, token: str) -> dict | None:
@@ -137,7 +200,10 @@ def _github_get_file(repo: str, path: str, branch: str, token: str) -> dict | No
     )
     if response.status_code == 404:
         return None
-    response.raise_for_status()
+    if response.status_code >= 400:
+        raise RuntimeError(
+            _format_github_http_error(response, context=f"Falha ao ler {path} no GitHub")
+        )
     return response.json()
 
 
@@ -147,7 +213,7 @@ def push_file_to_github(
     repo_path: str,
     message: str,
 ) -> str:
-    token = os.environ["GITHUB_TOKEN"].strip()
+    token = _github_token()
     repo = github_repo()
     branch = os.environ.get("GITHUB_BRANCH", "main").strip() or "main"
 
@@ -169,18 +235,13 @@ def push_file_to_github(
     )
     if response.status_code >= 400:
         raise RuntimeError(
-            f"Falha ao enviar {repo_path} ao GitHub "
-            f"({response.status_code}): {response.text[:400]}"
+            _format_github_http_error(response, context=f"Falha ao enviar {repo_path}")
         )
     return repo_path
 
 
 def push_updates_to_github(pdf_path: Path | None = None) -> list[str]:
-    if not github_configured():
-        raise RuntimeError(
-            "GitHub não configurado. Defina GITHUB_TOKEN no Railway "
-            f"(repositório padrão: {DEFAULT_GITHUB_REPO})."
-        )
+    verify_github_access()
 
     pushed: list[str] = []
     for path in CSV_PATHS:

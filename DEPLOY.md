@@ -163,9 +163,19 @@ python app.py
 
 ### GitHub falhou
 
-- Token com escopo `repo` ou `contents:write`
-- `GITHUB_REPO` no formato `dono/nome` (sem `.git`)
-- Veja a mensagem de erro na aba Atualizar dados
+- **401 Unauthorized:** token inválido/expirado ou colado com aspas. Gere um novo PAT
+- **403 Forbidden:** falta permissão de escrita no repositório
+- Token fine-grained recomendado:
+  1. GitHub → Settings → Developer settings → [Personal access tokens](https://github.com/settings/tokens)
+  2. **Generate new token (fine-grained)**
+  3. Resource owner: sua conta
+  4. Repository access: **Only select repositories** → `set-pnad`
+  5. Permissions → Repository → **Contents: Read and write**
+  6. Generate e copie o valor (`github_pat_...`)
+  7. Railway → Variables → `GITHUB_TOKEN` = cole **sem aspas**
+  8. Redeploy e reenvie o PDF
+- Classic token: use escopo `repo`
+- `GITHUB_REPO` no formato `dono/nome` (padrão: `pauloqxm/set-pnad`)
 
 ### Timeout no processamento
 
