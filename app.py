@@ -64,19 +64,26 @@ df = pd.read_csv(CSV_PATH)
 df_cmp = pd.read_csv(COMPARE_CSV)
 df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
 PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
-LATEST = PERIOD_ORDER[-1]
-PREVIOUS_PERIODS = PERIOD_ORDER[:-1]
+DETAIL_PERIOD_ORDER = (
+    df.sort_values("ordem_periodo")["periodo"].drop_duplicates().tolist()
+)
+# KPIs e análise detalhada usam o CSV curado; a série pode ter outros trimestres.
+LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
+PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
 
 
 def reload_runtime_data() -> None:
     """Recarrega CSVs em memória após upload (série e comparativo)."""
-    global df, df_cmp, df_serie, PERIOD_ORDER, LATEST, PREVIOUS_PERIODS
+    global df, df_cmp, df_serie, PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS
     df = pd.read_csv(CSV_PATH)
     df_cmp = pd.read_csv(COMPARE_CSV)
     df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
     PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
-    LATEST = PERIOD_ORDER[-1]
-    PREVIOUS_PERIODS = PERIOD_ORDER[:-1]
+    DETAIL_PERIOD_ORDER = (
+        df.sort_values("ordem_periodo")["periodo"].drop_duplicates().tolist()
+    )
+    LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
+    PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
 
 
 SIG_LABEL = {"cresceu": "cresceu", "decresceu": "decresceu", "estavel": "estável"}
@@ -90,19 +97,24 @@ def br(number: float, decimals: int = 1) -> str:
 
 
 def latest_row(indicator: str, section: str) -> pd.Series:
-    return df[
-        (df["secao"] == section)
-        & (df["indicador"] == indicator)
-        & (df["periodo"] == LATEST)
-    ].iloc[0]
+    rows = df[(df["secao"] == section) & (df["indicador"] == indicator)]
+    if rows.empty:
+        raise ValueError(f"Indicador não encontrado: {section} / {indicator}")
+    preferred = rows[rows["periodo"] == LATEST]
+    if not preferred.empty:
+        return preferred.iloc[0]
+    return rows.sort_values("ordem_periodo").iloc[-1]
 
 
 def series_values(indicator: str, section: str) -> list[float]:
     rows = df[(df["secao"] == section) & (df["indicador"] == indicator)]
-    return [
-        float(rows[rows["periodo"] == period]["valor"].iloc[0])
-        for period in PERIOD_ORDER
-    ]
+    values: list[float] = []
+    for period in DETAIL_PERIOD_ORDER:
+        match = rows[rows["periodo"] == period]
+        if match.empty:
+            continue
+        values.append(float(match["valor"].iloc[0]))
+    return values
 
 
 def delta_text(row: pd.Series, scope: str) -> str:
@@ -484,7 +496,8 @@ def short_tri_label(period: str) -> str:
 
 def kpi_card(indicator: str, section: str, description: str) -> dmc.Card:
     row = latest_row(indicator, section)
-    prev_period = year_ago_period(LATEST)
+    current_period = str(row["periodo"])
+    prev_period = year_ago_period(current_period)
     prev_row = period_row(indicator, section, prev_period) if prev_period else None
     accent = {"cresceu": "#0B7285", "decresceu": "#C92A2A", "estavel": "#005CA9"}.get(
         row["situacao_anual"], "#005CA9"

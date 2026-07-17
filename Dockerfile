@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py data_update.py extract_series.py extract_regional.py ./
 COPY assets ./assets
 COPY data ./data
-RUN mkdir -p pnad
+COPY pnad ./pnad
 
 EXPOSE 8051
 

@@ -93,6 +93,16 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
     """Regenera série temporal e comparativo regional a partir de pnad/."""
     PNAD_DIR.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    synced = sync_pnad_pdfs_from_github()
+
+    pdfs = extract_series.list_quadro_pdfs(PNAD_DIR)
+    if len(pdfs) < 2:
+        raise RuntimeError(
+            "Poucos PDFs em pnad/ para montar a série. "
+            "No Railway a pasta começa vazia: configure GITHUB_TOKEN para "
+            "baixar os PDFs do repositório antes da regeneração, ou faça "
+            "upload dos 4 trimestres mais recentes."
+        )
 
     series_frame, series_audit = extract_series.build_series(PNAD_DIR, last_n=4)
     extract_series.OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
@@ -127,6 +137,7 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
         "comparativo_periodo": regional_audit.get("periodo"),
         "comparativo_linhas": len(regional_frame),
         "pdf_usado_comparativo": pdf_path.name,
+        "pdfs_baixados_github": synced,
         "force_series": force_series,
     }
 
@@ -188,6 +199,45 @@ def verify_github_access() -> None:
             f"O token acessa {repo}, mas sem permissão de push (Contents: Write). "
             "Ajuste o PAT e tente de novo."
         )
+
+
+def sync_pnad_pdfs_from_github() -> list[str]:
+    """Baixa PDFs de pnad/ do GitHub para completar a série no container."""
+    token = _github_token()
+    if not token:
+        return []
+    repo = github_repo()
+    branch = os.environ.get("GITHUB_BRANCH", "main").strip() or "main"
+    response = requests.get(
+        f"https://api.github.com/repos/{repo}/contents/pnad",
+        headers=_github_headers(token),
+        params={"ref": branch},
+        timeout=60,
+    )
+    if response.status_code == 404:
+        return []
+    if response.status_code >= 400:
+        raise RuntimeError(
+            _format_github_http_error(response, context="Falha ao listar pnad/ no GitHub")
+        )
+
+    PNAD_DIR.mkdir(parents=True, exist_ok=True)
+    downloaded: list[str] = []
+    for item in response.json():
+        name = item.get("name") or ""
+        if not PDF_NAME_RE.match(name):
+            continue
+        target = PNAD_DIR / name
+        if target.exists() and target.stat().st_size > 0:
+            continue
+        download_url = item.get("download_url")
+        if not download_url:
+            continue
+        file_response = requests.get(download_url, timeout=180)
+        file_response.raise_for_status()
+        target.write_bytes(file_response.content)
+        downloaded.append(name)
+    return downloaded
 
 
 def _github_get_file(repo: str, path: str, branch: str, token: str) -> dict | None:

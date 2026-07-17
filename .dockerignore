@@ -5,8 +5,10 @@ __pycache__/
 .venv/
 venv/
 env/
-pnad/
-*.pdf
 extract_data.py
 executar_dashboard.bat
 *.bat
+# PDFs soltos na raiz; mantém os de pnad/ na imagem
+*.pdf
+!pnad/
+!pnad/**
