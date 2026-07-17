@@ -1,0 +1,86 @@
+{
+  "arquivo_pdf": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pnad\\pnadc_202601_trimestre_quadroSintetico.pdf",
+  "periodo": "jan-fev-mar/2026",
+  "geografias": [
+    "Brasil",
+    "Nordeste",
+    "Maranhão",
+    "Piauí",
+    "Ceará",
+    "Rio Grande do Norte",
+    "Paraíba",
+    "Pernambuco",
+    "Alagoas",
+    "Sergipe",
+    "Bahia"
+  ],
+  "linhas_csv": 99,
+  "regioes_macro": {
+    "Norte": {
+      "Taxa de desocupação": 7.0,
+      "Nível da ocupação": 55.3,
+      "Taxa de participação na força de trabalho": 59.5,
+      "Ocupadas": 7978.0,
+      "Desocupadas": 596.0,
+      "Pessoas de 14 anos ou mais": 14418.0,
+      "Taxa composta de subutilização da força de trabalho": 17.9,
+      "Rendimento médio mensal real habitual": 2849.0,
+      "Massa de rendimento mensal real habitual": 21956.0
+    },
+    "Nordeste": {
+      "Taxa de desocupação": 8.4,
+      "Nível da ocupação": 49.5,
+      "Taxa de participação na força de trabalho": 54.1,
+      "Ocupadas": 22994.0,
+      "Desocupadas": 2096.0,
+      "Pessoas de 14 anos ou mais": 46415.0,
+      "Taxa composta de subutilização da força de trabalho": 23.7,
+      "Rendimento médio mensal real habitual": 2616.0,
+      "Massa de rendimento mensal real habitual": 59072.0
+    },
+    "Centro-Oeste": {
+      "Taxa de desocupação": 4.8,
+      "Nível da ocupação": 63.4,
+      "Taxa de participação na força de trabalho": 66.6,
+      "Ocupadas": 8825.0,
+      "Desocupadas": 444.0,
+      "Pessoas de 14 anos ou mais": 13923.0,
+      "Taxa composta de subutilização da força de trabalho": 9.4,
+      "Rendimento médio mensal real habitual": 4379.0,
+      "Massa de rendimento mensal real habitual": 38401.0
+    },
+    "Sudeste": {
+      "Taxa de desocupação": 5.9,
+      "Nível da ocupação": 61.2,
+      "Taxa de participação na força de trabalho": 65.1,
+      "Ocupadas": 45520.0,
+      "Desocupadas": 2840.0,
+      "Pessoas de 14 anos ou mais": 74341.0,
+      "Taxa composta de subutilização da força de trabalho": 11.7,
+      "Rendimento médio mensal real habitual": 4125.0,
+      "Massa de rendimento mensal real habitual": 186392.0
+    },
+    "Sul": {
+      "Taxa de desocupação": 3.5,
+      "Nível da ocupação": 64.1,
+      "Taxa de participação na força de trabalho": 66.4,
+      "Ocupadas": 16658.0,
+      "Desocupadas": 602.0,
+      "Pessoas de 14 anos ou mais": 25984.0,
+      "Taxa composta de subutilização da força de trabalho": 7.6,
+      "Rendimento médio mensal real habitual": 4193.0,
+      "Massa de rendimento mensal real habitual": 68997.0
+    }
+  },
+  "brasil_agregado": {
+    "Taxa de desocupação": 6.059712767035457,
+    "Nível da ocupação": 58.244469702594806,
+    "Taxa de participação na força de trabalho": 62.00158783648712,
+    "Ocupadas": 101975.0,
+    "Desocupadas": 6578.0,
+    "Pessoas de 14 anos ou mais": 175081.0,
+    "Rendimento médio mensal real habitual": 3718.0024025496446,
+    "Massa de rendimento mensal real habitual": 374818.0,
+    "Taxa composta de subutilização da força de trabalho": 14.600453504377974
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "pasta": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pnad",
+  "arquivos_disponiveis": [
+    "pnadc_202501_trimestre_quadroSintetico.pdf",
+    "pnadc_202502_trimestre_quadroSintetico.pdf",
+    "pnadc_202503_trimestre_quadroSintetico.pdf",
+    "pnadc_202504_trimestre_quadroSintetico.pdf",
+    "pnadc_202601_trimestre_quadroSintetico.pdf"
+  ],
+  "arquivos_usados": [
+    "pnadc_202502_trimestre_quadroSintetico.pdf",
+    "pnadc_202503_trimestre_quadroSintetico.pdf",
+    "pnadc_202504_trimestre_quadroSintetico.pdf",
+    "pnadc_202601_trimestre_quadroSintetico.pdf"
+  ],
+  "periodos": [
+    "abr-mai-jun/2025",
+    "jul-ago-set/2025",
+    "out-nov-dez/2025",
+    "jan-fev-mar/2026"
+  ],
+  "indicadores": [
+    "Desocupadas",
+    "Empregados",
+    "Fora da força de trabalho",
+    "Massa de rendimento mensal real habitual",
+    "Na força de trabalho",
+    "Nível da ocupação",
+    "Ocupadas",
+    "Percentual de pessoas desalentadas",
+    "Pessoas de 14 anos ou mais",
+    "Rendimento médio mensal real habitual",
+    "Setor privado — com carteira",
+    "Setor público",
+    "Taxa composta de subutilização da força de trabalho",
+    "Taxa de desocupação",
+    "Taxa de participação na força de trabalho",
+    "Trabalhadores por conta própria"
+  ],
+  "linhas_csv": 64,
+  "trimestre_atual": "jan-fev-mar/2026",
+  "tres_anteriores": [
+    "abr-mai-jun/2025",
+    "jul-ago-set/2025",
+    "out-nov-dez/2025"
+  ]
+}

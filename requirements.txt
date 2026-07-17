@@ -1,0 +1,8 @@
+dash
+dash-ag-grid
+dash-mantine-components
+gunicorn
+pandas
+pdfplumber
+plotly
+requests

@@ -1,0 +1,62 @@
+{
+  "arquivo_pdf": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pand ce 1tri 2026.pdf",
+  "url_fonte_oficial": "https://ftp.ibge.gov.br/Trabalho_e_Rendimento/Pesquisa_Nacional_por_Amostra_de_Domicilios_continua/Trimestral/Quadro_Sintetico/2026/pnadc_202601_trimestre_quadroSintetico.pdf",
+  "indicadores": 56,
+  "linhas_csv": 168,
+  "periodos": [
+    "jan-fev-mar/2025",
+    "out-nov-dez/2025",
+    "jan-fev-mar/2026"
+  ],
+  "paginas_extraidas": [
+    {
+      "pagina": 1,
+      "palavras": 402,
+      "linhas_posicionais": 90,
+      "amostra": [
+        "Movimento",
+        "Legenda",
+        "Cresceu",
+        "Decresceu",
+        "Estimativas dos trimestres",
+        "out-nov-dez/2025 jan-fev-mar/2025",
+        "Indicadores",
+        "jan-fev- out-nov- jan-fev-"
+      ]
+    },
+    {
+      "pagina": 2,
+      "palavras": 158,
+      "linhas_posicionais": 42,
+      "amostra": [
+        "Movimento",
+        "Legenda",
+        "Cresceu",
+        "Decresceu",
+        "Estimativas dos trimestres",
+        "out-nov-dez/2025 jan-fev-mar/2025",
+        "jan-fev- out-nov- jan-fev-",
+        "VAR% VAR%"
+      ]
+    }
+  ],
+  "validacoes": [
+    "Pessoas de 14 anos ou mais: OK",
+    "Rendimento médio mensal real habitual: OK",
+    "Massa de rendimento mensal real habitual: OK"
+  ],
+  "significancia": "Setas do quadro oficial do IBGE (Wingdings3): '*'=estável, '#'=cresceu, '$'=decresceu; 1ª coluna = variação trimestral, 2ª coluna = variação anual.",
+  "campos_configuracao": [
+    "section",
+    "group",
+    "name",
+    "unit",
+    "values",
+    "quarter_abs",
+    "quarter_pct",
+    "year_abs",
+    "year_pct",
+    "situ_quarter",
+    "situ_year"
+  ]
+}

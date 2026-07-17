@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.git/
+.cursor/
+.venv/
+venv/
+env/
+pnad/
+*.pdf
+extract_data.py
+executar_dashboard.bat
+*.bat
