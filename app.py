@@ -949,7 +949,18 @@ def load_narratives_payload() -> dict:
         return {}
 
 
-NARRATIVES_PAYLOAD = load_narratives_payload()
+def bootstrap_narratives() -> dict:
+    """Se houver chave de IA e o JSON ainda for template, regenera no boot."""
+    try:
+        import generate_narratives
+
+        return generate_narratives.ensure_ai_narratives()
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: não foi possível regenerar narrativas com IA ({exc})")
+        return load_narratives_payload()
+
+
+NARRATIVES_PAYLOAD = bootstrap_narratives()
 SECTION_NARRATIVES = {
     str(key): str(value)
     for key, value in (NARRATIVES_PAYLOAD.get("sections") or {}).items()
