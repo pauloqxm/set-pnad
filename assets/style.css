@@ -277,17 +277,30 @@ body {
 
   .header-metrics {
     width: 100%;
-    justify-content: space-between !important;
-    gap: 12px !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
 
   .header-metric {
-    align-items: flex-start !important;
-    min-width: 30%;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    width: 100%;
   }
 
   .header-metric-value {
-    font-size: 1.15rem !important;
+    font-size: 0.95rem !important;
+    white-space: nowrap;
+  }
+
+  .header-metric-label {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap;
   }
 
   .kpi-value {
@@ -319,12 +332,11 @@ body {
 }
 
 @media (max-width: 480px) {
-  .header-metric {
-    min-width: 100%;
+  .header-metric-value {
+    font-size: 0.9rem !important;
   }
 
-  .header-metrics {
-    flex-direction: column !important;
-    align-items: flex-start !important;
+  .header-metric-label {
+    font-size: 0.58rem !important;
   }
 }
