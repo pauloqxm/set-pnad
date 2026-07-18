@@ -51,6 +51,7 @@ body {
   flex-wrap: wrap;
   padding: 18px 16px;
   background: #ffffff;
+  border-bottom: 1px solid #d7e0e6;
 }
 
 .login-logo {
