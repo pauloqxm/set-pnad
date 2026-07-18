@@ -2026,6 +2026,10 @@ dashboard_shell = html.Div(
 )
 
 
+LOGO_SET_URL = "https://set-observatorio.up.railway.app/static/assets/logo_set.png"
+LOGO_IDT_URL = "https://set-observatorio.up.railway.app/static/assets/logo_idt.png"
+
+
 def login_screen() -> html.Div:
     return html.Div(
         className="login-page",
@@ -2033,49 +2037,62 @@ def login_screen() -> html.Div:
             className="login-card",
             withBorder=True,
             radius="md",
-            p="xl",
+            p=0,
             shadow="md",
             children=[
-                dmc.Text(
-                    "SECRETARIA DO TRABALHO DO CEARÁ",
-                    size="xs",
-                    fw=800,
-                    ta="center",
-                    style={"letterSpacing": "0.08em", "color": THEME["teal"]},
+                html.Div(
+                    className="login-logos",
+                    children=[
+                        html.Img(
+                            src=LOGO_SET_URL,
+                            alt="Secretaria do Trabalho do Ceará",
+                            className="login-logo login-logo--set",
+                        ),
+                        html.Img(
+                            src=LOGO_IDT_URL,
+                            alt="Instituto de Desenvolvimento do Trabalho",
+                            className="login-logo login-logo--idt",
+                        ),
+                    ],
                 ),
-                dmc.Title(
-                    "PNAD Contínua — Ceará",
-                    order=2,
-                    ta="center",
-                    mt="xs",
-                    style={"color": THEME["navy"]},
-                ),
-                dmc.Text(
-                    "Acesso restrito ao painel",
-                    size="sm",
-                    c="dimmed",
-                    ta="center",
-                    mb="lg",
-                ),
-                dmc.TextInput(
-                    id="login-username",
-                    label="Usuário",
-                    placeholder="Digite o usuário",
-                    mb="sm",
-                ),
-                dmc.PasswordInput(
-                    id="login-password",
-                    label="Senha",
-                    placeholder="Digite a senha",
-                    mb="md",
-                ),
-                html.Div(id="login-error"),
-                dmc.Button(
-                    "Entrar",
-                    id="login-btn",
-                    fullWidth=True,
-                    color="teal",
-                    mt="sm",
+                html.Div(
+                    className="login-form",
+                    children=[
+                        dmc.Title(
+                            "PNAD Contínua — Ceará",
+                            order=2,
+                            ta="center",
+                            style={"color": THEME["navy"]},
+                        ),
+                        dmc.Text(
+                            "Acesso restrito ao painel",
+                            size="sm",
+                            c="dimmed",
+                            ta="center",
+                            mb="lg",
+                            mt="xs",
+                        ),
+                        dmc.TextInput(
+                            id="login-username",
+                            label="Usuário",
+                            placeholder="Digite o usuário",
+                            mb="sm",
+                        ),
+                        dmc.PasswordInput(
+                            id="login-password",
+                            label="Senha",
+                            placeholder="Digite a senha",
+                            mb="md",
+                        ),
+                        html.Div(id="login-error"),
+                        dmc.Button(
+                            "Entrar",
+                            id="login-btn",
+                            fullWidth=True,
+                            color="teal",
+                            mt="sm",
+                        ),
+                    ],
                 ),
             ],
         ),

@@ -38,8 +38,58 @@ body {
 }
 
 .login-card {
-  width: min(420px, 100%);
+  width: min(460px, 100%);
   background: #fff;
+  overflow: hidden;
+}
+
+.login-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 18px 16px;
+  background: #000;
+}
+
+.login-logo {
+  display: block;
+  width: auto;
+  object-fit: contain;
+}
+
+.login-logo--set {
+  height: 92px;
+  max-width: min(160px, 42vw);
+}
+
+.login-logo--idt {
+  height: 58px;
+  max-width: min(220px, 48vw);
+}
+
+.login-form {
+  padding: 24px 28px 28px;
+}
+
+@media (max-width: 480px) {
+  .login-logos {
+    gap: 12px;
+    padding: 14px 12px;
+  }
+
+  .login-logo--set {
+    height: 76px;
+  }
+
+  .login-logo--idt {
+    height: 48px;
+  }
+
+  .login-form {
+    padding: 20px 16px 22px;
+  }
 }
 
 .app-header {
