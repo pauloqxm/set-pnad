@@ -10,8 +10,17 @@
   --muted: #5b6b7a;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: "Segoe UI", Candara, Calibri, sans-serif;
@@ -20,10 +29,16 @@ body {
 .app-shell {
   min-height: 100vh;
   background: var(--bg);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .app-header {
   box-shadow: 0 2px 12px rgba(0, 43, 73, 0.18);
+}
+
+.header-metric-value {
+  font-size: 1.6rem;
 }
 
 .panel-card,
@@ -31,6 +46,7 @@ body {
   background: var(--card);
   border-color: #e4ebef !important;
   box-shadow: 0 1px 3px rgba(0, 43, 73, 0.06);
+  max-width: 100%;
 }
 
 .kpi-card--solid {
@@ -47,11 +63,16 @@ body {
   background: rgba(255, 255, 255, 0.18) !important;
   color: #fff !important;
   border: 1px solid rgba(255, 255, 255, 0.28);
+  white-space: normal;
+  height: auto;
+  line-height: 1.25;
+  padding: 4px 8px;
 }
 
 .main-tabs .mantine-Tabs-list {
   gap: 8px;
   border-bottom: none;
+  flex-wrap: wrap;
 }
 
 .main-tabs .mantine-Tabs-tab {
@@ -72,10 +93,89 @@ body {
   border-left: 4px solid var(--seafoam) !important;
 }
 
+.chart-responsive,
+.chart-responsive .js-plotly-plot,
+.chart-responsive .plot-container,
+.chart-responsive .svg-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
 .ag-theme-alpine {
   --ag-font-family: "Segoe UI", Candara, Calibri, sans-serif;
   --ag-font-size: 13px;
   --ag-header-background-color: #e7f1ec;
   --ag-border-color: #d7e2e8;
   --ag-header-foreground-color: var(--navy);
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 16px 0 !important;
+  }
+
+  .header-title {
+    font-size: 1.45rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .header-subtitle {
+    font-size: 0.82rem !important;
+  }
+
+  .header-metrics {
+    width: 100%;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+
+  .header-metric {
+    align-items: flex-start !important;
+    min-width: 30%;
+  }
+
+  .header-metric-value {
+    font-size: 1.15rem !important;
+  }
+
+  .kpi-value {
+    font-size: 1.55rem !important;
+  }
+
+  .kpi-card--solid {
+    min-height: 0 !important;
+  }
+
+  .main-tabs .mantine-Tabs-tab {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 12px;
+  }
+
+  .mantine-Container-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .mantine-Title-root {
+    font-size: clamp(1rem, 4.5vw, 1.35rem) !important;
+  }
+
+  .chart-responsive .js-plotly-plot {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-metric {
+    min-width: 100%;
+  }
+
+  .header-metrics {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
 }

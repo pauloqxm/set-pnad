@@ -343,6 +343,7 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
                 orientation="h",
                 text=end_labels,
                 textposition="outside",
+                textfont={"size": 10, "family": "Segoe UI, sans-serif", "color": THEME["text"]},
                 cliponaxis=False,
                 marker={
                     "color": [compare_bar_color(geo, total=True) for geo in geos],
@@ -370,6 +371,7 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
                 orientation="h",
                 text=labels,
                 textposition="outside",
+                textfont={"size": 10, "family": "Segoe UI, sans-serif", "color": THEME["text"]},
                 cliponaxis=False,
                 marker={
                     "color": [compare_bar_color(geo) for geo in geos],
@@ -395,19 +397,21 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
         template="plotly_white",
         barmode="stack" if with_total else "relative",
         bargap=0.35,
+        autosize=True,
         height=max(320, 48 * len(geos) + (110 if with_total else 80)),
-        margin={"l": 140, "r": 240 if with_total else 150, "t": 20, "b": 40},
+        margin={"l": 110, "r": 120 if with_total else 72, "t": 36, "b": 40},
         xaxis={
             "title": None,
             "tickmode": "array",
             "tickvals": tick_values,
             "ticktext": tick_text,
+            "tickfont": {"size": 10},
             "gridcolor": "#E6EBF0",
             "zeroline": False,
             "range": [0, max_value * (1.42 if with_total else 1.22)],
         },
-        yaxis={"title": None, "automargin": True},
-        font={"family": "Inter, Segoe UI, Arial, sans-serif", "color": "#25324A", "size": 13},
+        yaxis={"title": None, "automargin": True, "tickfont": {"size": 11}},
+        font={"family": "Segoe UI, Candara, sans-serif", "color": THEME["text"], "size": 11},
         plot_bgcolor="white",
         paper_bgcolor="white",
         showlegend=with_total,
@@ -417,6 +421,7 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
             "y": 1.02,
             "xanchor": "left",
             "x": 0,
+            "font": {"size": 11},
             "itemclick": "toggle",
             "itemdoubleclick": "toggleothers",
         }
@@ -428,8 +433,9 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
     return dcc.Graph(
         id="compare-chart",
         figure=figure,
-        config={"displayModeBar": False},
-        style={"width": "100%"},
+        config={"displayModeBar": False, "responsive": True},
+        className="chart-responsive",
+        style={"width": "100%", "minWidth": 0},
     )
 
 
@@ -554,6 +560,7 @@ def kpi_card(
                 value_text(row),
                 fw=800,
                 my=10,
+                className="kpi-value",
                 style={
                     "fontSize": "2rem",
                     "lineHeight": 1.05,
@@ -602,12 +609,16 @@ def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph
     scale = series_scale(unit)
     figure = go.Figure()
     colors = CHART_COLORS
+    # Alterna posição para reduzir sobreposição quando séries ficam próximas.
+    text_positions = ("top center", "bottom center", "middle right", "top left")
 
     for index, indicator in enumerate(indicators):
         rows = df_serie[df_serie["indicador"] == indicator].sort_values("ordem_periodo")
         if rows.empty:
             continue
         values = [float(v) * scale for v in rows["valor"]]
+        periods = rows["periodo"].tolist()
+        short_x = [short_tri_label(str(period)) for period in periods]
         if unit == "%":
             labels = [f"{br(v)}%" for v in rows["valor"]]
         elif unit == "R$":
@@ -617,33 +628,70 @@ def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph
         else:
             labels = [br(v * scale, 0) for v in rows["valor"]]
 
+        color = colors[index % len(colors)]
         figure.add_trace(
             go.Scatter(
-                x=rows["periodo"].tolist(),
+                x=short_x,
                 y=values,
+                customdata=periods,
                 mode="lines+markers+text",
                 name=indicator,
                 text=labels,
-                textposition="top center",
-                line={"width": 3, "color": colors[index % len(colors)]},
-                marker={"size": 9},
-                hovertemplate="%{x}<br>%{text}<extra>" + indicator + "</extra>",
+                textposition=text_positions[index % len(text_positions)],
+                textfont={"size": 10, "color": color, "family": "Segoe UI, sans-serif"},
+                cliponaxis=False,
+                line={"width": 2.5, "color": color},
+                marker={"size": 7, "color": color},
+                hovertemplate="%{customdata}<br>%{text}<extra>" + indicator + "</extra>",
             )
         )
 
+    y_values = [v for trace in figure.data for v in (trace.y or [])]
+    y_pad = 0.0
+    if y_values:
+        y_min, y_max = min(y_values), max(y_values)
+        span = max(y_max - y_min, abs(y_max) * 0.08, 1.0)
+        y_pad = span * 0.18
+
     figure.update_layout(
-        title={"text": title, "x": 0, "font": {"size": 15}},
+        title={"text": title, "x": 0, "font": {"size": 14, "color": THEME["navy"]}},
         template="plotly_white",
-        height=340,
-        margin={"l": 50, "r": 30, "t": 50, "b": 50},
-        legend={"orientation": "h", "y": -0.22, "x": 0},
-        xaxis={"title": None, "type": "category"},
-        yaxis={"title": None, "gridcolor": "#E6EBF0", "zeroline": False},
-        font={"family": "Inter, Segoe UI, Arial, sans-serif", "color": "#25324A", "size": 12},
+        autosize=True,
+        height=380,
+        margin={"l": 44, "r": 18, "t": 56, "b": 88},
+        legend={
+            "orientation": "h",
+            "y": -0.28,
+            "x": 0,
+            "font": {"size": 11},
+            "bgcolor": "rgba(255,255,255,0.85)",
+        },
+        xaxis={
+            "title": None,
+            "type": "category",
+            "tickfont": {"size": 11},
+            "tickangle": -20,
+        },
+        yaxis={
+            "title": None,
+            "gridcolor": "#E6EBF0",
+            "zeroline": False,
+            "tickfont": {"size": 11},
+            "range": (
+                [min(y_values) - y_pad, max(y_values) + y_pad] if y_values else None
+            ),
+        },
+        font={"family": "Segoe UI, Candara, sans-serif", "color": THEME["text"], "size": 11},
         plot_bgcolor="white",
         paper_bgcolor="white",
+        hovermode="x unified",
     )
-    return dcc.Graph(figure=figure, config={"displayModeBar": False})
+    return dcc.Graph(
+        figure=figure,
+        config={"displayModeBar": False, "responsive": True},
+        className="chart-responsive",
+        style={"width": "100%", "minWidth": 0},
+    )
 
 
 def quarters_chart_data(
@@ -829,6 +877,7 @@ header = dmc.Paper(
     style={"backgroundColor": THEME["header"], "color": "white"},
     children=dmc.Container(
         size="xl",
+        px={"base": "sm", "sm": "md", "lg": "xl"},
         children=dmc.Group(
             justify="space-between",
             align="center",
@@ -837,6 +886,7 @@ header = dmc.Paper(
             children=[
                 dmc.Stack(
                     gap=4,
+                    className="header-title-block",
                     children=[
                         dmc.Text(
                             "MERCADO DE TRABALHO",
@@ -847,10 +897,12 @@ header = dmc.Paper(
                         dmc.Title(
                             "PNAD Contínua — Ceará",
                             order=1,
+                            className="header-title",
                             style={"color": "white", "margin": 0},
                         ),
                         dmc.Text(
                             f"Trimestre atual: {LATEST} · comparação com os 3 trimestres anteriores",
+                            className="header-subtitle",
                             style={"color": "rgba(255,255,255,0.78)"},
                         ),
                     ],
@@ -858,15 +910,19 @@ header = dmc.Paper(
                 dmc.Group(
                     gap="xl",
                     align="center",
+                    wrap="wrap",
+                    className="header-metrics",
                     children=[
                         dmc.Stack(
                             gap=0,
                             align="flex-end",
+                            className="header-metric",
                             children=[
                                 dmc.Text(
                                     value_text(_desoc),
                                     fw=800,
-                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                    className="header-metric-value",
+                                    style={"color": "white", "lineHeight": 1},
                                 ),
                                 dmc.Text(
                                     "TAXA DE DESOCUPAÇÃO",
@@ -879,11 +935,13 @@ header = dmc.Paper(
                         dmc.Stack(
                             gap=0,
                             align="flex-end",
+                            className="header-metric",
                             children=[
                                 dmc.Text(
                                     value_text(_ocup),
                                     fw=800,
-                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                    className="header-metric-value",
+                                    style={"color": "white", "lineHeight": 1},
                                 ),
                                 dmc.Text(
                                     "OCUPADAS",
@@ -896,11 +954,13 @@ header = dmc.Paper(
                         dmc.Stack(
                             gap=0,
                             align="flex-end",
+                            className="header-metric",
                             children=[
                                 dmc.Text(
                                     value_text(_rend),
                                     fw=800,
-                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                    className="header-metric-value",
+                                    style={"color": "white", "lineHeight": 1},
                                 ),
                                 dmc.Text(
                                     "RENDIMENTO MÉDIO",
