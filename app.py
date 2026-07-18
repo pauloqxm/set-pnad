@@ -9,7 +9,10 @@ estatística (setas do IBGE) das variações trimestral e interanual.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import secrets
 from pathlib import Path
 
 import dash_ag_grid as dag
@@ -17,6 +20,7 @@ import dash_mantine_components as dmc
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, Input, Output, State, callback, ctx, dcc, html, no_update
+from flask import session
 
 import data_update
 
@@ -1049,6 +1053,41 @@ app = Dash(
 
 server = app.server
 
+
+def auth_credentials() -> tuple[str, str]:
+    """Credenciais do painel: USUARIO/SENHA (aliases AUTH_USERNAME/AUTH_PASSWORD)."""
+    username = (
+        os.environ.get("USUARIO", "").strip()
+        or os.environ.get("AUTH_USERNAME", "").strip()
+    )
+    password = (
+        os.environ.get("SENHA", "").strip()
+        or os.environ.get("AUTH_PASSWORD", "").strip()
+    )
+    return username, password
+
+
+def auth_configured() -> bool:
+    username, password = auth_credentials()
+    return bool(username and password)
+
+
+def is_logged_in() -> bool:
+    return bool(session.get("authenticated"))
+
+
+_username, _password = auth_credentials()
+_server_secret = os.environ.get("SECRET_KEY", "").strip()
+if not _server_secret:
+    if _username and _password:
+        _server_secret = hashlib.sha256(
+            f"{_username}:{_password}:pnad-ceara".encode("utf-8")
+        ).hexdigest()
+    else:
+        _server_secret = secrets.token_hex(32)
+server.secret_key = _server_secret
+server.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+
 _desoc = latest_row("Taxa de desocupação", "Mercado de trabalho")
 _ocup = latest_row("Ocupadas", "Mercado de trabalho")
 _rend = latest_row("Rendimento médio mensal real habitual", "Rendimento")
@@ -1084,7 +1123,7 @@ header = dmc.Paper(
                             style={"color": "white", "margin": 0},
                         ),
                         dmc.Text(
-                            f"Trimestre atual: {LATEST} · comparação com os 3 trimestres anteriores",
+                            f"Trimestre atual: {LATEST}",
                             className="header-subtitle",
                             style={"color": "rgba(255,255,255,0.78)"},
                         ),
@@ -1939,6 +1978,128 @@ _update_children.append(
 )
 update_tab = dmc.Stack(gap="md", children=_update_children)
 
+dashboard_shell = html.Div(
+    className="app-shell",
+    children=[
+        header,
+        html.Div(
+            className="app-main",
+            children=dmc.Container(
+                size="xl",
+                py="md",
+                children=[
+                    dmc.Group(
+                        justify="flex-end",
+                        mb="sm",
+                        children=[
+                            dmc.Button(
+                                "Sair",
+                                id="logout-btn",
+                                variant="light",
+                                color="gray",
+                                size="xs",
+                            ),
+                        ],
+                    ),
+                    dmc.Tabs(
+                        value="ceara",
+                        className="main-tabs",
+                        children=[
+                            dmc.TabsList(
+                                [
+                                    dmc.TabsTab("Ceará", value="ceara"),
+                                    dmc.TabsTab("Comparativo", value="comparativo"),
+                                    dmc.TabsTab("Atualizar dados", value="atualizar"),
+                                ],
+                                mb="md",
+                            ),
+                            dmc.TabsPanel(ceara_analysis, value="ceara"),
+                            dmc.TabsPanel(comparison_tab, value="comparativo"),
+                            dmc.TabsPanel(update_tab, value="atualizar"),
+                        ],
+                    ),
+                    footer,
+                ],
+            ),
+        ),
+    ],
+)
+
+
+def login_screen() -> html.Div:
+    return html.Div(
+        className="login-page",
+        children=dmc.Paper(
+            className="login-card",
+            withBorder=True,
+            radius="md",
+            p="xl",
+            shadow="md",
+            children=[
+                dmc.Text(
+                    "SECRETARIA DO TRABALHO DO CEARÁ",
+                    size="xs",
+                    fw=800,
+                    ta="center",
+                    style={"letterSpacing": "0.08em", "color": THEME["teal"]},
+                ),
+                dmc.Title(
+                    "PNAD Contínua — Ceará",
+                    order=2,
+                    ta="center",
+                    mt="xs",
+                    style={"color": THEME["navy"]},
+                ),
+                dmc.Text(
+                    "Acesso restrito ao painel",
+                    size="sm",
+                    c="dimmed",
+                    ta="center",
+                    mb="lg",
+                ),
+                dmc.TextInput(
+                    id="login-username",
+                    label="Usuário",
+                    placeholder="Digite o usuário",
+                    mb="sm",
+                ),
+                dmc.PasswordInput(
+                    id="login-password",
+                    label="Senha",
+                    placeholder="Digite a senha",
+                    mb="md",
+                ),
+                html.Div(id="login-error"),
+                dmc.Button(
+                    "Entrar",
+                    id="login-btn",
+                    fullWidth=True,
+                    color="teal",
+                    mt="sm",
+                ),
+            ],
+        ),
+    )
+
+
+def auth_setup_screen() -> html.Div:
+    return html.Div(
+        className="login-page",
+        children=dmc.Alert(
+            [
+                dmc.Text(
+                    "Defina as variáveis de ambiente USUARIO e SENHA no Railway "
+                    "(ou localmente) para liberar o acesso ao painel.",
+                    size="sm",
+                ),
+            ],
+            title="Login não configurado",
+            color="orange",
+            className="login-card",
+        ),
+    )
+
+
 app.layout = dmc.MantineProvider(
     theme={
         "fontFamily": "Segoe UI, Candara, Calibri, sans-serif",
@@ -1959,41 +2120,63 @@ app.layout = dmc.MantineProvider(
         },
     },
     children=[
-        html.Div(
-            className="app-shell",
-            children=[
-                header,
-                html.Div(
-                    className="app-main",
-                    children=dmc.Container(
-                        size="xl",
-                        py="md",
-                        children=[
-                            dmc.Tabs(
-                                value="ceara",
-                                className="main-tabs",
-                                children=[
-                                    dmc.TabsList(
-                                        [
-                                            dmc.TabsTab("Ceará", value="ceara"),
-                                            dmc.TabsTab("Comparativo", value="comparativo"),
-                                            dmc.TabsTab("Atualizar dados", value="atualizar"),
-                                        ],
-                                        mb="md",
-                                    ),
-                                    dmc.TabsPanel(ceara_analysis, value="ceara"),
-                                    dmc.TabsPanel(comparison_tab, value="comparativo"),
-                                    dmc.TabsPanel(update_tab, value="atualizar"),
-                                ],
-                            ),
-                            footer,
-                        ],
-                    ),
-                ),
-            ],
-        ),
+        dcc.Location(id="auth-url"),
+        dcc.Store(id="auth-refresh", data=0),
+        html.Div(id="auth-root"),
     ],
 )
+
+
+@callback(
+    Output("auth-root", "children"),
+    Input("auth-url", "pathname"),
+    Input("auth-refresh", "data"),
+)
+def render_auth_gate(_pathname, _refresh):
+    if not auth_configured():
+        return auth_setup_screen()
+    if is_logged_in():
+        return dashboard_shell
+    return login_screen()
+
+
+@callback(
+    Output("auth-refresh", "data"),
+    Output("login-error", "children"),
+    Input("login-btn", "n_clicks"),
+    State("login-username", "value"),
+    State("login-password", "value"),
+    State("auth-refresh", "data"),
+    prevent_initial_call=True,
+)
+def handle_login(n_clicks, username, password, refresh):
+    if not n_clicks:
+        return no_update, no_update
+    expected_user, expected_pass = auth_credentials()
+    user_ok = secrets.compare_digest(str(username or "").strip(), expected_user)
+    pass_ok = secrets.compare_digest(str(password or ""), expected_pass)
+    if user_ok and pass_ok:
+        session["authenticated"] = True
+        return (refresh or 0) + 1, None
+    return no_update, dmc.Alert(
+        "Usuário ou senha inválidos.",
+        color="red",
+        title="Falha no login",
+        mb="sm",
+    )
+
+
+@callback(
+    Output("auth-refresh", "data", allow_duplicate=True),
+    Input("logout-btn", "n_clicks"),
+    State("auth-refresh", "data"),
+    prevent_initial_call=True,
+)
+def handle_logout(n_clicks, refresh):
+    if not n_clicks:
+        return no_update
+    session.pop("authenticated", None)
+    return (refresh or 0) + 1
 
 
 def filtered_frame(section: str, periods: list[str] | None) -> pd.DataFrame:
@@ -2190,6 +2373,12 @@ def show_upload_filename(filename: str | None):
 def process_pdf_upload(n_clicks, contents, filename, token, push_github):
     if not n_clicks:
         return no_update
+    if auth_configured() and not is_logged_in():
+        return dmc.Alert(
+            "Faça login para continuar.",
+            color="red",
+            title="Não autorizado",
+        )
     if not contents or not filename:
         return dmc.Alert(
             "Selecione um PDF antes de processar.",

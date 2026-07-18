@@ -122,6 +122,9 @@ API, usa um gerador determinístico a partir dos números da base detalhada.
 | `PORT` | `8051` | Porta (Railway define em produção) |
 | `DASH_DEBUG` | `0` | `1` só em desenvolvimento local |
 | `HOST` | `0.0.0.0` em produção | Bind no modo `python app.py` |
+| `USUARIO` | — | Usuário do login do painel |
+| `SENHA` | — | Senha do login do painel |
+| `SECRET_KEY` | — | Chave da sessão Flask (opcional) |
 | `ADMIN_UPLOAD_TOKEN` | — | Libera a aba Atualizar dados |
 | `GITHUB_TOKEN` | — | PAT com escrita no repositório |
 | `GITHUB_REPO` | `pauloqxm/set-pnad` | Repositório alvo do push |
@@ -137,6 +140,8 @@ API, usa um gerador determinístico a partir dos números da base detalhada.
 ```bash
 docker build -t pnad-ceara .
 docker run -p 8051:8051 -e PORT=8051 \
+  -e USUARIO=admin \
+  -e SENHA=segredo \
   -e ADMIN_UPLOAD_TOKEN=segredo \
   pnad-ceara
 ```
@@ -153,6 +158,8 @@ Para testar upload local:
 
 ```powershell
 $env:DASH_DEBUG="1"
+$env:USUARIO="admin"
+$env:SENHA="segredo"
 $env:ADMIN_UPLOAD_TOKEN="segredo"
 python app.py
 ```
