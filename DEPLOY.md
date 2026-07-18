@@ -104,11 +104,16 @@ Fluxo:
 
 1. PDF salvo em `pnad/` no container
 2. Regenera `pnad_ce_serie.csv` e `pnad_comparativo_1tri2026.csv`
-3. Envia os arquivos ao GitHub via API
-4. O Railway redesplega a partir do repositório
+3. Regenera `data/narratives.json` (textos das seções 1–6)
+4. Envia os arquivos ao GitHub via API
+5. O Railway redesplega a partir do repositório
 
-**Importante:** a análise detalhada do Ceará (significância estatística) não é
-reescrita por este upload.
+**Narrativas automáticas:** no upload, o sistema gera os textos azuis das
+seções com IA gratuita (Groq; opcionalmente Gemini). Se não houver chave de
+API, usa um gerador determinístico a partir dos números da base detalhada.
+
+**Importante:** a base detalhada do Ceará com setas de significância
+(`pnad_ce_1tri2026.csv`) não é reescrita pelo upload do PDF sintético.
 
 ## Variáveis de ambiente
 
@@ -117,11 +122,15 @@ reescrita por este upload.
 | `PORT` | `8051` | Porta (Railway define em produção) |
 | `DASH_DEBUG` | `0` | `1` só em desenvolvimento local |
 | `HOST` | `0.0.0.0` em produção | Bind no modo `python app.py` |
-| `ADMIN_UPLOAD_TOKEN` | — | Senha da aba de upload |
-| `GITHUB_TOKEN` | — | Token para push via API |
-| `GITHUB_REPO` | — | `dono/repositorio` |
-| `GITHUB_BRANCH` | `main` | Branch de destino |
-| `GITHUB_PUSH_PDFS` | `1` | Envia também o PDF |
+| `ADMIN_UPLOAD_TOKEN` | — | Libera a aba Atualizar dados |
+| `GITHUB_TOKEN` | — | PAT com escrita no repositório |
+| `GITHUB_REPO` | `pauloqxm/set-pnad` | Repositório alvo do push |
+| `GITHUB_BRANCH` | `main` | Branch |
+| `GITHUB_PUSH_PDFS` | `1` | `0` para não versionar o PDF |
+| `GROQ_API_KEY` | — | Chave gratuita em https://console.groq.com |
+| `GROQ_MODEL` | `llama-3.1-8b-instant` | Modelo Groq |
+| `GEMINI_API_KEY` | — | Opcional (fallback) https://aistudio.google.com/apikey |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Modelo Gemini |
 
 ## Build local
 

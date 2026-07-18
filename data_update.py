@@ -29,6 +29,7 @@ CSV_PATHS = (
     DATA_DIR / "pnad_comparativo_1tri2026.csv",
     DATA_DIR / "series_extraction_audit.json",
     DATA_DIR / "regional_extraction_audit.json",
+    DATA_DIR / "narratives.json",
 )
 
 
@@ -378,16 +379,36 @@ def process_upload(
     pdf_path = save_pdf(filename, raw)
     stats = regenerate_csvs(force_series=True)
 
+    narrative_info: dict = {}
+    try:
+        import generate_narratives
+
+        narrative_info = generate_narratives.generate_and_save()
+        stats["narratives"] = narrative_info
+    except Exception as exc:  # noqa: BLE001
+        narrative_info = {"error": str(exc)}
+        stats["narratives"] = narrative_info
+
     result = {
         "pdf": pdf_path.name,
         "stats": stats,
         "github": None,
+        "narratives": narrative_info,
         "aviso": (
-            "Série temporal e comparativo regional foram atualizados. "
+            "Série temporal, comparativo regional e textos de análise foram atualizados. "
             "A base detalhada do Ceará (setas de significância) continua "
             "sendo a última versão curada em data/pnad_ce_1tri2026.csv."
         ),
     }
+
+    source = narrative_info.get("source")
+    if source == "template":
+        result["aviso"] += (
+            " As narrativas usaram o gerador automático (template), porque "
+            "GROQ_API_KEY/GEMINI_API_KEY não estavam disponíveis ou a IA falhou."
+        )
+    elif source in {"groq", "gemini"}:
+        result["aviso"] += f" Narrativas geradas por IA ({source})."
 
     if push_github:
         if not github_configured():

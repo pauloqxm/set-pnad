@@ -9,6 +9,7 @@ estatística (setas do IBGE) das variações trimestral e interanual.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import dash_ag_grid as dag
@@ -20,9 +21,10 @@ from dash import Dash, Input, Output, State, callback, ctx, dcc, html, no_update
 import data_update
 
 BASE_DIR = Path(__file__).resolve().parent
-CSV_PATH = BASE_DIR / "data" / "pnad_ce_1tri2026.csv"
-COMPARE_CSV = BASE_DIR / "data" / "pnad_comparativo_1tri2026.csv"
-SERIES_CSV = BASE_DIR / "data" / "pnad_ce_serie.csv"
+DATA_DIR = BASE_DIR / "data"
+CSV_PATH = DATA_DIR / "pnad_ce_1tri2026.csv"
+COMPARE_CSV = DATA_DIR / "pnad_comparativo_1tri2026.csv"
+SERIES_CSV = DATA_DIR / "pnad_ce_serie.csv"
 LATEST = "jan-fev-mar/2026"
 GEO_ORDER = (
     "Brasil",
@@ -110,6 +112,15 @@ CHART_COLORS = [THEME["teal_dark"], THEME["teal"], THEME["green"], "#C47B3A", "#
 def br(number: float, decimals: int = 1) -> str:
     text = f"{number:,.{decimals}f}"
     return text.replace(",", "@").replace(".", ",").replace("@", ".")
+
+
+INDICATOR_LABELS = {
+    "Rendimento médio mensal real habitual": "Rendimento médio mensal",
+}
+
+
+def indicator_label(name: str) -> str:
+    return INDICATOR_LABELS.get(name, name)
 
 
 def latest_row(indicator: str, section: str) -> pd.Series:
@@ -351,13 +362,16 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
                     "cornerradius": 6,
                 },
                 hovertemplate=(
-                    "%{y}<br>Demais (até o total 14+): %{x:,.0f}"
+                    "%{y}<br>Demais (até o total 14+): %{customdata[2]}"
                     "<br>Total (14+): %{customdata[1]}"
                     "<br>Participação: %{customdata[0]}"
                     "<br><i>Clique para ocultar</i><extra></extra>"
                 ),
                 customdata=[
-                    [pct, total] for pct, total in zip(percent_labels, total_labels, strict=True)
+                    [pct, total, br(rem, 0)]
+                    for pct, total, rem in zip(
+                        percent_labels, total_labels, remainders, strict=True
+                    )
                 ],
             )
         )
@@ -384,7 +398,7 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
     if unit == "%":
         tick_values = [0, 20, 40, 60, 80]
         tick_values = [tick for tick in tick_values if tick <= max(80, max_value * 1.1)]
-        tick_text = [f"{tick}" for tick in tick_values]
+        tick_text = [f"{br(tick, 0)}%" for tick in tick_values]
     else:
         step = 10 ** max(0, len(str(int(max_value))) - 1)
         tick_values = list(range(0, int(max_value * 1.15) + step, step))
@@ -439,41 +453,84 @@ def compare_chart(indicator: str, hidden_geos: list[str] | None = None) -> dcc.G
     )
 
 
-def compare_summary_card(title: str, indicator: str) -> dmc.Card:
+def compare_summary_card(
+    title: str,
+    indicator: str,
+    *,
+    color: str = THEME["teal_dark"],
+) -> dmc.Card:
     rows = {
         geo: df_cmp[(df_cmp["geografia"] == geo) & (df_cmp["indicador"] == indicator)].iloc[0]
         for geo in ("Ceará", "Brasil", "Nordeste")
     }
-    unit = rows["Ceará"]["unidade"]
+    unit = str(rows["Ceará"]["unidade"])
     return dmc.Card(
-        withBorder=True,
+        className="kpi-card kpi-card--solid",
+        withBorder=False,
         radius="md",
         padding="lg",
+        style={"background": color, "color": "white", "minHeight": 148},
         children=[
-            dmc.Text(title, size="sm", c="dimmed", fw=600),
+            dmc.Text(
+                title,
+                size="xs",
+                fw=800,
+                tt="uppercase",
+                style={"letterSpacing": "0.06em", "color": "rgba(255,255,255,0.9)"},
+            ),
             dmc.Group(
                 justify="space-between",
-                mt="sm",
+                mt="md",
+                align="flex-start",
+                wrap="nowrap",
                 children=[
                     dmc.Stack(
                         gap=2,
                         children=[
-                            dmc.Text("Ceará", size="xs", c="blue", fw=700),
-                            dmc.Text(compare_value_label(rows["Ceará"]["valor"], unit), fw=700),
+                            dmc.Text(
+                                "Ceará",
+                                size="xs",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.78)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(rows["Ceará"]["valor"], unit),
+                                fw=800,
+                                className="kpi-value",
+                                style={"color": "white", "fontSize": "1.35rem", "lineHeight": 1.1},
+                            ),
                         ],
                     ),
                     dmc.Stack(
                         gap=2,
                         children=[
-                            dmc.Text("Brasil", size="xs", c="dimmed"),
-                            dmc.Text(compare_value_label(rows["Brasil"]["valor"], unit), size="sm"),
+                            dmc.Text(
+                                "Brasil",
+                                size="xs",
+                                style={"color": "rgba(255,255,255,0.72)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(rows["Brasil"]["valor"], unit),
+                                size="sm",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.95)"},
+                            ),
                         ],
                     ),
                     dmc.Stack(
                         gap=2,
                         children=[
-                            dmc.Text("Nordeste", size="xs", c="dimmed"),
-                            dmc.Text(compare_value_label(rows["Nordeste"]["valor"], unit), size="sm"),
+                            dmc.Text(
+                                "Nordeste",
+                                size="xs",
+                                style={"color": "rgba(255,255,255,0.72)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(rows["Nordeste"]["valor"], unit),
+                                size="sm",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.95)"},
+                            ),
                         ],
                     ),
                 ],
@@ -522,23 +579,78 @@ def kpi_card(
     description: str,
     *,
     color: str = THEME["teal_dark"],
+    title: str | None = None,
 ) -> dmc.Card:
     row = latest_row(indicator, section)
     current_period = str(row["periodo"])
     prev_period = year_ago_period(current_period)
     prev_row = period_row(indicator, section, prev_period) if prev_period else None
+    display_title = title or indicator_label(indicator)
 
-    footer_bits = [
+    children = [
+        dmc.Text(
+            display_title,
+            size="xs",
+            fw=800,
+            tt="uppercase",
+            style={"letterSpacing": "0.06em", "color": "rgba(255,255,255,0.9)"},
+        ),
+        dmc.Text(
+            value_text(row),
+            fw=800,
+            my=10,
+            className="kpi-value",
+            style={
+                "fontSize": "2rem",
+                "lineHeight": 1.05,
+                "color": "white",
+                "letterSpacing": "-0.02em",
+            },
+        ),
         dmc.Text(description, size="xs", style={"color": "rgba(255,255,255,0.82)"}),
+        dmc.Group(
+            [sig_badge(row, "trimestral", "no tri.")],
+            gap="xs",
+            mt="sm",
+        ),
     ]
+
     if prev_row is not None:
-        footer_bits.append(
-            dmc.Text(
-                f"{value_text(prev_row)} · mesmo tri. {short_tri_label(prev_period)}",
-                size="xs",
-                fw=600,
-                mt=4,
-                style={"color": "rgba(255,255,255,0.95)"},
+        children.append(
+            html.Div(
+                className="kpi-yoy-box",
+                children=[
+                    dmc.Text(
+                        "Ano anterior",
+                        size="xs",
+                        fw=700,
+                        tt="uppercase",
+                        style={
+                            "letterSpacing": "0.05em",
+                            "color": "rgba(255,255,255,0.72)",
+                        },
+                    ),
+                    dmc.Text(
+                        f"{value_text(prev_row)} · {short_tri_label(prev_period)}",
+                        size="sm",
+                        fw=700,
+                        mt=4,
+                        style={"color": "rgba(255,255,255,0.98)"},
+                    ),
+                    dmc.Group(
+                        [sig_badge(row, "anual", "no ano")],
+                        gap="xs",
+                        mt=8,
+                    ),
+                ],
+            )
+        )
+    else:
+        children.append(
+            dmc.Group(
+                [sig_badge(row, "anual", "no ano")],
+                gap="xs",
+                mt="sm",
             )
         )
 
@@ -548,36 +660,7 @@ def kpi_card(
         radius="md",
         padding="lg",
         style={"background": color, "color": "white", "minHeight": 188},
-        children=[
-            dmc.Text(
-                indicator,
-                size="xs",
-                fw=800,
-                tt="uppercase",
-                style={"letterSpacing": "0.06em", "color": "rgba(255,255,255,0.9)"},
-            ),
-            dmc.Text(
-                value_text(row),
-                fw=800,
-                my=10,
-                className="kpi-value",
-                style={
-                    "fontSize": "2rem",
-                    "lineHeight": 1.05,
-                    "color": "white",
-                    "letterSpacing": "-0.02em",
-                },
-            ),
-            dmc.Stack(gap=2, children=footer_bits),
-            dmc.Group(
-                [
-                    sig_badge(row, "trimestral", "no tri."),
-                    sig_badge(row, "anual", "no ano"),
-                ],
-                gap="xs",
-                mt="md",
-            ),
-        ],
+        children=children,
     )
 
 
@@ -635,14 +718,16 @@ def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph
                 y=values,
                 customdata=periods,
                 mode="lines+markers+text",
-                name=indicator,
+                name=indicator_label(indicator),
                 text=labels,
                 textposition=text_positions[index % len(text_positions)],
                 textfont={"size": 10, "color": color, "family": "Segoe UI, sans-serif"},
                 cliponaxis=False,
                 line={"width": 2.5, "color": color},
                 marker={"size": 7, "color": color},
-                hovertemplate="%{customdata}<br>%{text}<extra>" + indicator + "</extra>",
+                hovertemplate="%{customdata}<br>%{text}<extra>"
+                + indicator_label(indicator)
+                + "</extra>",
             )
         )
 
@@ -725,6 +810,22 @@ def quarters_chart_data(
 PALETTE = ["blue.6", "orange.6", "teal.6", "grape.6", "cyan.6", "red.6"]
 
 
+def _mantine_value_formatter(unit: str) -> dict:
+    if unit == "%":
+        return {"function": "formatPercentPtBR"}
+    if unit in {"R$", "R$ milhões"}:
+        return {"function": "formatCurrencyPtBR"}
+    return {"function": "formatNumberPtBR"}
+
+
+def _chart_value_formatter(unit: str, scale: float = 1.0) -> dict:
+    if unit == "Mil pessoas" and scale != 1:
+        return {"function": "formatNumberPtBR"}
+    if unit == "R$ milhões" and scale != 1:
+        return {"function": "formatCurrencyPtBR"}
+    return _mantine_value_formatter(unit)
+
+
 def line_chart(
     indicators: list[str],
     section: str,
@@ -732,11 +833,12 @@ def line_chart(
     height: int = 300,
     scale: float = 1.0,
 ) -> dmc.LineChart | dcc.Graph:
+    display_unit = unit if scale == 1 else ("pessoas" if unit == "Mil pessoas" else unit)
     if all(indicator in set(df_serie["indicador"]) for indicator in indicators):
         return series_line_chart(
             indicators,
             title=f"{' · '.join(indicators[:2])}{'…' if len(indicators) > 2 else ''}",
-            unit=unit if scale == 1 else ("pessoas" if unit == "Mil pessoas" else unit),
+            unit=display_unit if scale != 1 or unit != "Mil pessoas" else unit,
         )
     return dmc.LineChart(
         h=height,
@@ -749,13 +851,14 @@ def line_chart(
         curveType="linear",
         withLegend=True,
         legendProps={"verticalAlign": "bottom"},
-        unit=unit,
+        unit="" if scale != 1 and unit == "Mil pessoas" else ("" if unit in {"R$", "R$ milhões"} else unit),
         withDots=True,
         strokeWidth=2.5,
         gridAxis="xy",
         withXAxis=True,
         withYAxis=True,
-        yAxisProps={"domain": ["auto", "auto"], "width": 90},
+        yAxisProps={"domain": ["auto", "auto"], "width": 96},
+        valueFormatter=_chart_value_formatter(unit, scale),
     )
 
 
@@ -766,9 +869,13 @@ def grouped_bar_chart(
     height: int = 320,
     scale: float = 1.0,
 ) -> dmc.BarChart:
+    data = quarters_chart_data(indicators, section, scale=scale)
+    # Eixo X abreviado no padrão brasileiro de trimestre.
+    for entry in data:
+        entry["periodo"] = short_tri_label(str(entry["periodo"]))
     return dmc.BarChart(
         h=height,
-        data=quarters_chart_data(indicators, section, scale=scale),
+        data=data,
         dataKey="periodo",
         series=[
             {"name": name, "color": PALETTE[i % len(PALETTE)]}
@@ -776,9 +883,10 @@ def grouped_bar_chart(
         ],
         withLegend=True,
         legendProps={"verticalAlign": "bottom"},
-        unit=unit,
+        unit="" if scale != 1 and unit == "Mil pessoas" else ("" if unit in {"R$", "R$ milhões"} else unit),
         gridAxis="y",
-        yAxisProps={"width": 90},
+        yAxisProps={"width": 96},
+        valueFormatter=_chart_value_formatter(unit, scale),
     )
 
 
@@ -818,11 +926,75 @@ def variation_bar_chart(section: str, scope: str, unit_filter: str = "Mil pessoa
         gridAxis="x",
         yAxisProps={"width": 320},
         barProps={"radius": 3},
+        valueFormatter={"function": "formatPercentPtBR"},
     )
 
 
 def narrative(children) -> dmc.Alert:
     return dmc.Alert(children, color="cyan", variant="light", radius="md", className="panel-narrative")
+
+
+def load_narratives_payload() -> dict:
+    path = DATA_DIR / "narratives.json"
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        import generate_narratives
+
+        return generate_narratives.load_narratives()
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+NARRATIVES_PAYLOAD = load_narratives_payload()
+SECTION_NARRATIVES = {
+    str(key): str(value)
+    for key, value in (NARRATIVES_PAYLOAD.get("sections") or {}).items()
+}
+NARRATIVES_FROM_AI = str(NARRATIVES_PAYLOAD.get("source", "")).lower() in {
+    "groq",
+    "gemini",
+}
+
+
+def ai_assist_badge() -> dmc.Tooltip:
+    return dmc.Tooltip(
+        label="Texto feito com auxílio de IA",
+        withArrow=True,
+        position="left",
+        children=html.Span(
+            "✦ IA",
+            className="ai-assist-badge",
+            role="img",
+            **{"aria-label": "Texto feito com auxílio de IA"},
+        ),
+    )
+
+
+def narrative_md(section_key: str, fallback: str) -> dmc.Alert:
+    text = SECTION_NARRATIVES.get(section_key) or fallback
+    body = dcc.Markdown(
+        text,
+        className="narrative-md",
+        dangerously_allow_html=False,
+    )
+    if not NARRATIVES_FROM_AI:
+        return narrative(body)
+    return narrative(
+        dmc.Group(
+            align="flex-start",
+            justify="space-between",
+            gap="sm",
+            wrap="nowrap",
+            children=[
+                html.Div(body, style={"flex": "1 1 auto", "minWidth": 0}),
+                ai_assist_badge(),
+            ],
+        )
+    )
 
 
 def section_title(number: str, text: str) -> dmc.Group:
@@ -889,10 +1061,10 @@ header = dmc.Paper(
                     className="header-title-block",
                     children=[
                         dmc.Text(
-                            "MERCADO DE TRABALHO",
+                            "SECRETARIA DO TRABALHO DO CEARÁ",
                             size="xs",
                             fw=800,
-                            style={"letterSpacing": "0.16em", "color": THEME["seafoam"]},
+                            style={"letterSpacing": "0.1em", "color": THEME["seafoam"]},
                         ),
                         dmc.Title(
                             "PNAD Contínua — Ceará",
@@ -1026,6 +1198,7 @@ kpis = dmc.SimpleGrid(
             "Rendimento",
             "Todos os trabalhos, valores reais",
             color=KPI_CARD_COLORS[3],
+            title="Rendimento médio mensal",
         ),
     ],
 )
@@ -1034,17 +1207,11 @@ section1 = dmc.Stack(
     gap="md",
     children=[
         section_title("1", "Indicadores gerais do mercado de trabalho"),
-        narrative([
-            dmc.Text([
-                "A taxa de desocupação foi de 8,0% → 5,0% → 7,3%: ",
-                dmc.Text("alta significativa de 2,3 p.p. sobre out-dez/2025", fw=700, span=True),
-                " — efeito sazonal típico da passagem do 4º para o 1º trimestre —, mas ",
-                dmc.Text("estável na comparação anual (-0,7 p.p.)", fw=700, span=True),
-                ", o melhor resultado para um 1º trimestre desde 2012. O nível da ocupação caiu de "
-                "forma significativa no trimestre (-2,0 p.p., para 47,6%), e a participação na força "
-                "de trabalho ficou estável (51,3%).",
-            ], size="sm"),
-        ]),
+        narrative_md(
+            "mercado",
+            "A taxa de desocupação, o nível da ocupação e a participação na força de "
+            "trabalho do Ceará são atualizados a partir da base detalhada da PNAD Contínua.",
+        ),
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
             children=[
@@ -1063,16 +1230,10 @@ section2 = dmc.Stack(
     gap="md",
     children=[
         section_title("2", "População por condição de ocupação"),
-        narrative(
-            dmc.Text([
-                "Os ocupados caíram de 3.756.000 para 3.603.000 (",
-                dmc.Text("-153.000, -4,1%, queda significativa no trimestre", fw=700, span=True),
-                "); na comparação anual, ficaram estáveis (+84.000). Os desocupados subiram de "
-                "196.000 para 282.000 (",
-                dmc.Text("+86.000, +44,2% no trimestre — alta significativa", fw=700, span=True),
-                "). A população fora da força de trabalho ficou estável (3.692.000): quem perdeu "
-                "ocupação migrou para a desocupação, não para fora do mercado.",
-            ], size="sm"),
+        narrative_md(
+            "populacao",
+            "Os estoques de ocupados, desocupados e pessoas fora da força de trabalho "
+            "são atualizados automaticamente a cada nova base.",
         ),
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
@@ -1091,18 +1252,10 @@ section3 = dmc.Stack(
     gap="md",
     children=[
         section_title("3", "Ocupados por posição na ocupação"),
-        narrative(
-            dmc.Text([
-                "O destaque é a formalização: empregados do setor privado com carteira subiram de "
-                "940.000 para 1.037.000 no ano (",
-                dmc.Text("+96.000, +10,2%, alta significativa", fw=700, span=True),
-                "), e o setor público cresceu +71.000 (+14,3%), puxado pelos vínculos sem carteira "
-                "(+38,9%). Na direção oposta, o trabalho doméstico sem carteira caiu -14,2% no ano (",
-                dmc.Text("queda significativa nas duas janelas", fw=700, span=True),
-                ") e os empregadores sem CNPJ recuaram -33,8% — encolhimento de pequenos negócios "
-                "informais. Conta própria caiu -5,6% no trimestre (significativo), mas está estável "
-                "no ano.",
-            ], size="sm"),
+        narrative_md(
+            "ocupacao",
+            "A composição da ocupação por posição e categoria é atualizada com base "
+            "nas variações trimestral e anual da PNAD Contínua.",
         ),
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
@@ -1121,19 +1274,10 @@ section4 = dmc.Stack(
     gap="md",
     children=[
         section_title("4", "Ocupados por setor de atividade"),
-        narrative(
-            dmc.Text([
-                "No trimestre, as quedas significativas vieram da agropecuária (-8,6%), da indústria "
-                "geral (-10,5%) e dos serviços domésticos (-14,1%). Na comparação anual, os setores "
-                "que sustentaram a ocupação foram ",
-                dmc.Text(
-                    "administração pública, educação e saúde (+101.000, +15,4%) e informação, "
-                    "finanças e atividades profissionais (+62.000, +20,7%)",
-                    fw=700, span=True,
-                ),
-                " — ambos com alta significativa. Comércio, agropecuária e indústria acumulam quedas "
-                "anuais, mas classificadas como estáveis pelo teste estatístico.",
-            ], size="sm"),
+        narrative_md(
+            "atividades",
+            "Os movimentos setoriais da ocupação são atualizados automaticamente a "
+            "partir das variações significativas da base detalhada.",
         ),
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
@@ -1172,15 +1316,10 @@ section5 = dmc.Stack(
     gap="md",
     children=[
         section_title("5", "Rendimento"),
-        narrative(
-            dmc.Text([
-                "O rendimento médio real habitual subiu de R$ 2.333 para R$ 2.597 (",
-                dmc.Text("+11,4% no ano, alta significativa", fw=700, span=True),
-                "; estável no trimestre, +5,2%). A massa de rendimento — soma de tudo que é pago aos "
-                "ocupados — chegou a R$ 9.235.000.000 (",
-                dmc.Text("+13,9% no ano, também significativo", fw=700, span=True),
-                "), combinando mais gente formalizada e rendimento médio maior.",
-            ], size="sm"),
+        narrative_md(
+            "rendimento",
+            "O rendimento médio mensal e a massa de rendimento são atualizados "
+            "automaticamente com a base da PNAD Contínua.",
         ),
         dmc.SimpleGrid(
             cols={"base": 1, "md": 2},
@@ -1189,9 +1328,9 @@ section5 = dmc.Stack(
                 dmc.Card(
                     withBorder=True, radius="md", padding="lg",
                     children=[
-                        dmc.Text("Rendimento médio real habitual (R$)", fw=600, mb="sm"),
+                        dmc.Text("Rendimento médio mensal (R$)", fw=600, mb="sm"),
                         grouped_bar_chart(
-                            ["Rendimento médio mensal real habitual"], "Rendimento", "", 280,
+                            ["Rendimento médio mensal real habitual"], "Rendimento", "R$", 280,
                         ),
                     ],
                 ),
@@ -1201,7 +1340,7 @@ section5 = dmc.Stack(
                         dmc.Text("Massa de rendimento (R$)", fw=600, mb="sm"),
                         grouped_bar_chart(
                             ["Massa de rendimento mensal real habitual"],
-                            "Rendimento", "", 280, scale=1_000_000,
+                            "Rendimento", "R$ milhões", 280, scale=1_000_000,
                         ),
                     ],
                 ),
@@ -1214,17 +1353,10 @@ section6 = dmc.Stack(
     gap="md",
     children=[
         section_title("6", "Subutilização da força de trabalho"),
-        narrative(
-            dmc.Text([
-                "Os indicadores ampliados de desemprego mostram os dois movimentos ao mesmo tempo: "
-                "a taxa composta de subutilização subiu de 17,4% para 19,8% no trimestre (",
-                dmc.Text("+2,4 p.p., alta significativa", fw=700, span=True),
-                "), mas caiu 3,8 p.p. na comparação anual (",
-                dmc.Text("queda significativa", fw=700, span=True),
-                "). As pessoas desalentadas subiram para 219.000 no trimestre (+16,9%), porém estão "
-                "25,4% abaixo de um ano atrás. A subocupação por insuficiência de horas caiu nas "
-                "duas janelas (-15,2% no trimestre e -20,6% no ano).",
-            ], size="sm"),
+        narrative_md(
+            "subutilizacao",
+            "Os indicadores ampliados de subutilização são atualizados "
+            "automaticamente com a base detalhada da PNAD Contínua.",
         ),
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
@@ -1316,7 +1448,7 @@ explorer = dmc.Stack(
                         {"field": "indicador", "headerName": "Indicador", "flex": 1, "minWidth": 260},
                         {"field": "unidade", "headerName": "Unidade", "width": 110},
                         {"field": "periodo", "headerName": "Período", "width": 140},
-                        {"field": "valor", "headerName": "Valor", "width": 110, "type": "numericColumn"},
+                        {"field": "valor", "headerName": "Valor", "width": 140},
                         {"field": "var_trimestral", "headerName": "Var. trim.", "width": 120},
                         {"field": "sig_trimestral", "headerName": "Situação trim.", "width": 130},
                         {"field": "var_anual", "headerName": "Var. anual", "width": 120},
@@ -1384,7 +1516,7 @@ ceara_analysis = dmc.Stack(
                             children=[
                                 series_line_chart(
                                     ["Rendimento médio mensal real habitual"],
-                                    "Rendimento médio real habitual (R$)",
+                                    "Rendimento médio mensal (R$)",
                                     "R$",
                                 )
                             ],
@@ -1420,6 +1552,7 @@ def compare_grid_records() -> list[dict]:
         compare_value_label(float(value), unit)
         for value, unit in zip(table["valor"], table["unidade"], strict=True)
     ]
+    table["indicador"] = table["indicador"].map(indicator_label)
     table["unidade"] = table["unidade"].replace(
         {"Mil pessoas": "pessoas", "R$ milhões": "R$"}
     )
@@ -1473,10 +1606,9 @@ GLOSSARY_ITEMS = [
         "São os desempregados na definição da PNAD. Quem desistiu de procurar não entra aqui.",
     ),
     (
-        "Rendimento médio mensal real habitual",
+        "Rendimento médio mensal",
         "É quanto, em média, a pessoa ocupada costuma ganhar por mês, já descontando a inflação.",
-        "“Real” significa que o valor foi ajustado para permitir comparação no tempo. "
-        "“Habitual” é o rendimento normalmente recebido, não um mês atípico.",
+        "O valor é real (ajustado pela inflação) e habitual (o normalmente recebido, não um mês atípico).",
     ),
     (
         "Taxa composta de subutilização da força de trabalho",
@@ -1535,10 +1667,26 @@ comparison_tab = dmc.Stack(
             cols={"base": 1, "sm": 2, "lg": 4},
             spacing="md",
             children=[
-                compare_summary_card("Taxa de desocupação", "Taxa de desocupação"),
-                compare_summary_card("Nível da ocupação", "Nível da ocupação"),
-                compare_summary_card("Ocupadas", "Ocupadas"),
-                compare_summary_card("Rendimento médio real", "Rendimento médio mensal real habitual"),
+                compare_summary_card(
+                    "Taxa de desocupação",
+                    "Taxa de desocupação",
+                    color=KPI_CARD_COLORS[0],
+                ),
+                compare_summary_card(
+                    "Nível da ocupação",
+                    "Nível da ocupação",
+                    color=KPI_CARD_COLORS[1],
+                ),
+                compare_summary_card(
+                    "Ocupadas",
+                    "Ocupadas",
+                    color=KPI_CARD_COLORS[2],
+                ),
+                compare_summary_card(
+                    "Rendimento médio mensal",
+                    "Rendimento médio mensal real habitual",
+                    color=KPI_CARD_COLORS[3],
+                ),
             ],
         ),
         dmc.Card(
@@ -1549,7 +1697,10 @@ comparison_tab = dmc.Stack(
                 dmc.Select(
                     id="compare-indicator",
                     label="Indicador para comparar",
-                    data=[{"label": item, "value": item} for item in COMPARE_INDICATORS],
+                    data=[
+                        {"label": indicator_label(item), "value": item}
+                        for item in COMPARE_INDICATORS
+                    ],
                     value="Taxa de desocupação",
                     clearable=False,
                     mb="md",
@@ -1611,7 +1762,8 @@ _update_children: list = [
             dmc.Text(
                 "Envie o quadro sintético do IBGE no padrão "
                 "pnadc_YYYYQQ_trimestre_quadroSintetico.pdf. "
-                "O sistema regenera a série temporal e o comparativo regional, "
+                "O sistema regenera a série temporal, o comparativo regional e "
+                "os textos de análise (IA gratuita Groq/Gemini, com fallback automático), "
                 "e pode publicar os arquivos no GitHub para o Railway redesplegar.",
                 size="sm",
                 c="dimmed",
@@ -1739,29 +1891,32 @@ app.layout = dmc.MantineProvider(
             className="app-shell",
             children=[
                 header,
-                dmc.Container(
-                    size="xl",
-                    py="md",
-                    children=[
-                        dmc.Tabs(
-                            value="ceara",
-                            className="main-tabs",
-                            children=[
-                                dmc.TabsList(
-                                    [
-                                        dmc.TabsTab("Análise do Ceará", value="ceara"),
-                                        dmc.TabsTab("Comparativo regional", value="comparativo"),
-                                        dmc.TabsTab("Atualizar dados", value="atualizar"),
-                                    ],
-                                    mb="md",
-                                ),
-                                dmc.TabsPanel(ceara_analysis, value="ceara"),
-                                dmc.TabsPanel(comparison_tab, value="comparativo"),
-                                dmc.TabsPanel(update_tab, value="atualizar"),
-                            ],
-                        ),
-                        footer,
-                    ],
+                html.Div(
+                    className="app-main",
+                    children=dmc.Container(
+                        size="xl",
+                        py="md",
+                        children=[
+                            dmc.Tabs(
+                                value="ceara",
+                                className="main-tabs",
+                                children=[
+                                    dmc.TabsList(
+                                        [
+                                            dmc.TabsTab("Ceará", value="ceara"),
+                                            dmc.TabsTab("Comparativo", value="comparativo"),
+                                            dmc.TabsTab("Atualizar dados", value="atualizar"),
+                                        ],
+                                        mb="md",
+                                    ),
+                                    dmc.TabsPanel(ceara_analysis, value="ceara"),
+                                    dmc.TabsPanel(comparison_tab, value="comparativo"),
+                                    dmc.TabsPanel(update_tab, value="atualizar"),
+                                ],
+                            ),
+                            footer,
+                        ],
+                    ),
                 ),
             ],
         ),
@@ -1812,9 +1967,10 @@ def grid_records(subset: pd.DataFrame) -> list[dict]:
     table["sig_trimestral"] = table.apply(fmt_sig, axis=1, scope="trimestral")
     table["sig_anual"] = table.apply(fmt_sig, axis=1, scope="anual")
     table["valor"] = [
-        display_value(float(value), unit)
+        value_text(pd.Series({"valor": float(value), "unidade": unit}))
         for value, unit in zip(table["valor"], table["unidade"], strict=True)
     ]
+    table["indicador"] = table["indicador"].map(indicator_label)
     table["unidade"] = table["unidade"].map(fmt_unit)
     columns = [
         "secao", "grupo", "indicador", "unidade", "periodo", "valor",

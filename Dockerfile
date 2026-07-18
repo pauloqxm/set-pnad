@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py data_update.py extract_series.py extract_regional.py ./
+COPY app.py data_update.py extract_series.py extract_regional.py generate_narratives.py ./
 COPY assets ./assets
 COPY data ./data
 COPY pnad ./pnad
