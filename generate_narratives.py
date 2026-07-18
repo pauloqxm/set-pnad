@@ -279,8 +279,60 @@ Fatos:
 """
 
 
+def call_gemini(prompt: str) -> dict[str, str]:
+    key = os.environ.get("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY não configurada.")
+    preferred = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
+    models = [preferred]
+    for candidate in (
+        "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-flash-latest",
+    ):
+        if candidate not in models:
+            models.append(candidate)
+
+    last_error = ""
+    for model in models:
+        # Auth keys (AQ.) e standard (AIza) no endpoint nativo.
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent"
+        )
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": key,
+            },
+            params={"key": key},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.2},
+            },
+            timeout=90,
+        )
+        if response.status_code >= 400:
+            last_error = f"Gemini HTTP {response.status_code} ({model}): {response.text[:400]}"
+            print(last_error)
+            continue
+        payload = response.json()
+        try:
+            content = payload["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError, TypeError) as exc:
+            last_error = f"Gemini resposta inesperada ({model}): {str(payload)[:400]}"
+            print(last_error)
+            raise RuntimeError(last_error) from exc
+        data = _extract_json_object(content)
+        return {name: str(data[name]).strip() for name in SECTION_META if name in data}
+    raise RuntimeError(last_error or "Gemini sem resposta válida.")
+
+
 def call_groq(prompt: str) -> dict[str, str]:
-    key = os.environ.get("GROQ_API_KEY", "").strip()
+    key = os.environ.get("GROQ_API_KEY", "").strip().strip('"').strip("'")
     if not key:
         raise RuntimeError("GROQ_API_KEY não configurada.")
     model = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant").strip()
@@ -307,42 +359,7 @@ def call_groq(prompt: str) -> dict[str, str]:
         raise RuntimeError(f"Groq HTTP {response.status_code}: {response.text[:300]}")
     content = response.json()["choices"][0]["message"]["content"]
     data = _extract_json_object(content)
-    return {key: str(data[key]).strip() for key in SECTION_META if key in data}
-
-
-def call_gemini(prompt: str) -> dict[str, str]:
-    key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not key:
-        raise RuntimeError("GEMINI_API_KEY não configurada.")
-    preferred = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
-    models = [preferred]
-    for candidate in ("gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"):
-        if candidate not in models:
-            models.append(candidate)
-
-    last_error = ""
-    for model in models:
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent?key={key}"
-        )
-        response = requests.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2},
-            },
-            timeout=90,
-        )
-        if response.status_code >= 400:
-            last_error = f"Gemini HTTP {response.status_code} ({model}): {response.text[:300]}"
-            continue
-        payload = response.json()
-        content = payload["candidates"][0]["content"]["parts"][0]["text"]
-        data = _extract_json_object(content)
-        return {key: str(data[key]).strip() for key in SECTION_META if key in data}
-    raise RuntimeError(last_error or "Gemini sem resposta válida.")
+    return {name: str(data[name]).strip() for name in SECTION_META if name in data}
 
 
 def generate_sections(df: pd.DataFrame | None = None) -> tuple[dict[str, str], str]:
@@ -382,10 +399,9 @@ def generate_sections(df: pd.DataFrame | None = None) -> tuple[dict[str, str], s
 
 
 def ai_keys_configured() -> bool:
-    return bool(
-        os.environ.get("GEMINI_API_KEY", "").strip()
-        or os.environ.get("GROQ_API_KEY", "").strip()
-    )
+    gemini = os.environ.get("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+    groq = os.environ.get("GROQ_API_KEY", "").strip().strip('"').strip("'")
+    return bool(gemini or groq)
 
 
 def ensure_ai_narratives(*, force: bool = False) -> dict:
@@ -398,11 +414,16 @@ def ensure_ai_narratives(*, force: bool = False) -> dict:
             current = {}
     source = str(current.get("source", "")).lower()
     if not force and source in {"groq", "gemini"}:
+        print(f"Narrativas: mantendo source={source}")
         return current
     if not ai_keys_configured():
+        print("Narrativas: sem GEMINI_API_KEY/GROQ_API_KEY; usando template.")
         return current if current else load_narratives()
+    print("Narrativas: regenerando com IA…")
     generate_and_save()
-    return load_narratives()
+    loaded = load_narratives()
+    print(f"Narrativas: source={loaded.get('source')}")
+    return loaded
 
 
 def save_narratives(sections: dict[str, str], source: str, periodo: str) -> Path:
