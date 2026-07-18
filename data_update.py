@@ -30,6 +30,7 @@ CSV_PATHS = (
     DATA_DIR / "series_extraction_audit.json",
     DATA_DIR / "regional_extraction_audit.json",
     DATA_DIR / "narratives.json",
+    DATA_DIR / "glossary.json",
 )
 
 
@@ -380,35 +381,43 @@ def process_upload(
     stats = regenerate_csvs(force_series=True)
 
     narrative_info: dict = {}
+    glossary_info: dict = {}
     try:
         import generate_narratives
 
         narrative_info = generate_narratives.generate_and_save()
+        glossary_info = generate_narratives.generate_glossary_and_save()
         stats["narratives"] = narrative_info
+        stats["glossary"] = glossary_info
     except Exception as exc:  # noqa: BLE001
         narrative_info = {"error": str(exc)}
+        glossary_info = {"error": str(exc)}
         stats["narratives"] = narrative_info
+        stats["glossary"] = glossary_info
 
     result = {
         "pdf": pdf_path.name,
         "stats": stats,
         "github": None,
         "narratives": narrative_info,
+        "glossary": glossary_info,
         "aviso": (
-            "Série temporal, comparativo regional e textos de análise foram atualizados. "
-            "A base detalhada do Ceará (setas de significância) continua "
+            "Série temporal, comparativo regional, textos de análise e glossário "
+            "foram atualizados. A base detalhada do Ceará (setas de significância) continua "
             "sendo a última versão curada em data/pnad_ce_1tri2026.csv."
         ),
     }
 
     source = narrative_info.get("source")
-    if source == "template":
+    gloss_source = glossary_info.get("source")
+    if source == "template" or gloss_source == "template":
         result["aviso"] += (
-            " As narrativas usaram o gerador automático (template), porque "
+            " Parte dos textos usou o gerador automático (template), porque "
             "GROQ_API_KEY/GEMINI_API_KEY não estavam disponíveis ou a IA falhou."
         )
-    elif source in {"groq", "gemini"}:
-        result["aviso"] += f" Narrativas geradas por IA ({source})."
+    elif source in {"groq", "gemini"} or gloss_source in {"groq", "gemini"}:
+        used = gloss_source or source
+        result["aviso"] += f" Textos gerados por IA ({used})."
 
     if push_github:
         if not github_configured():

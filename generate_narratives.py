@@ -279,7 +279,7 @@ Fatos:
 """
 
 
-def call_gemini(prompt: str) -> dict[str, str]:
+def call_gemini_json(prompt: str) -> dict:
     key = os.environ.get("GEMINI_API_KEY", "").strip().strip('"').strip("'")
     if not key:
         raise RuntimeError("GEMINI_API_KEY não configurada.")
@@ -297,7 +297,6 @@ def call_gemini(prompt: str) -> dict[str, str]:
 
     last_error = ""
     for model in models:
-        # Auth keys (AQ.) e standard (AIza) no endpoint nativo.
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent"
@@ -326,12 +325,11 @@ def call_gemini(prompt: str) -> dict[str, str]:
             last_error = f"Gemini resposta inesperada ({model}): {str(payload)[:400]}"
             print(last_error)
             raise RuntimeError(last_error) from exc
-        data = _extract_json_object(content)
-        return {name: str(data[name]).strip() for name in SECTION_META if name in data}
+        return _extract_json_object(content)
     raise RuntimeError(last_error or "Gemini sem resposta válida.")
 
 
-def call_groq(prompt: str) -> dict[str, str]:
+def call_groq_json(prompt: str) -> dict:
     key = os.environ.get("GROQ_API_KEY", "").strip().strip('"').strip("'")
     if not key:
         raise RuntimeError("GROQ_API_KEY não configurada.")
@@ -358,7 +356,16 @@ def call_groq(prompt: str) -> dict[str, str]:
     if response.status_code >= 400:
         raise RuntimeError(f"Groq HTTP {response.status_code}: {response.text[:300]}")
     content = response.json()["choices"][0]["message"]["content"]
-    data = _extract_json_object(content)
+    return _extract_json_object(content)
+
+
+def call_gemini(prompt: str) -> dict[str, str]:
+    data = call_gemini_json(prompt)
+    return {name: str(data[name]).strip() for name in SECTION_META if name in data}
+
+
+def call_groq(prompt: str) -> dict[str, str]:
+    data = call_groq_json(prompt)
     return {name: str(data[name]).strip() for name in SECTION_META if name in data}
 
 
@@ -460,6 +467,222 @@ def load_narratives() -> dict:
     return json.loads(Path(result["path"]).read_text(encoding="utf-8"))
 
 
+GLOSSARY_OUTPUT = DATA_DIR / "glossary.json"
+
+GLOSSARY_TOPICS = [
+    {
+        "id": "desocupacao",
+        "question": "O que é a taxa de desocupação?",
+        "fallback": (
+            "É o percentual de pessoas que estão sem trabalho e procurando emprego. "
+            "Em linguagem simples: a cada 100 pessoas na força de trabalho, quantas estão "
+            "desempregadas. Quanto menor, melhor."
+        ),
+    },
+    {
+        "id": "nivel_ocupacao",
+        "question": "O que é o nível da ocupação?",
+        "fallback": (
+            "É o percentual de pessoas de 14 anos ou mais que estão trabalhando. "
+            "Mostra quanto da população em idade de trabalhar está ocupada. Quanto maior, melhor."
+        ),
+    },
+    {
+        "id": "participacao",
+        "question": "O que é a taxa de participação na força de trabalho?",
+        "fallback": (
+            "É o percentual de pessoas que estão no mercado de trabalho — trabalhando ou "
+            "procurando emprego. Ajuda a entender se mais gente está entrando ou saindo do "
+            "mercado. Não mede desemprego sozinha."
+        ),
+    },
+    {
+        "id": "ocupadas",
+        "question": "O que significa o número de pessoas ocupadas?",
+        "fallback": (
+            "É a quantidade de pessoas que estão trabalhando. Inclui emprego formal, informal, "
+            "conta própria e outras formas de ocupação. Neste painel o número aparece em pessoas "
+            "(não em milhares)."
+        ),
+    },
+    {
+        "id": "desocupadas",
+        "question": "O que significa o número de pessoas desocupadas?",
+        "fallback": (
+            "É a quantidade de pessoas sem trabalho que estão buscando uma ocupação. "
+            "São os desempregados na definição da PNAD. Quem desistiu de procurar não entra aqui."
+        ),
+    },
+    {
+        "id": "rendimento",
+        "question": "O que é o rendimento médio mensal?",
+        "fallback": (
+            "É quanto, em média, a pessoa ocupada costuma ganhar por mês, já descontando a inflação. "
+            "O valor é real (ajustado pela inflação) e habitual (o normalmente recebido, não um mês atípico)."
+        ),
+    },
+    {
+        "id": "subutilizacao",
+        "question": "O que é a taxa composta de subutilização da força de trabalho?",
+        "fallback": (
+            "É um indicador mais amplo do que o desemprego: junta quem está desempregado, "
+            "quem trabalha menos horas do que gostaria e quem poderia trabalhar, mas não está "
+            "plenamente disponível. Serve para ver a folga do mercado além da taxa de desocupação. "
+            "Quanto menor, melhor."
+        ),
+    },
+]
+
+
+def template_glossary_items() -> list[dict]:
+    return [
+        {
+            "id": topic["id"],
+            "question": topic["question"],
+            "answer": topic["fallback"],
+        }
+        for topic in GLOSSARY_TOPICS
+    ]
+
+
+def _glossary_prompt() -> str:
+    topics = [
+        {"id": topic["id"], "question": topic["question"]}
+        for topic in GLOSSARY_TOPICS
+    ]
+    return f"""Você explica indicadores da PNAD Contínua (IBGE) para o público geral do Ceará.
+Responda em português do Brasil, linguagem clara e objetiva.
+
+Para cada item, escreva uma resposta de 2 a 4 frases:
+- diga o que o indicador mede;
+- diga, quando fizer sentido, se "maior" ou "menor" é melhor;
+- não invente números do trimestre atual.
+
+Retorne APENAS um JSON no formato:
+{{
+  "items": [
+    {{"id": "...", "question": "...", "answer": "..."}}
+  ]
+}}
+
+Use exatamente estes ids e perguntas:
+{json.dumps(topics, ensure_ascii=False)}
+"""
+
+
+def _normalize_glossary_items(raw_items: list) -> list[dict]:
+    by_id = {}
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        item_id = str(item.get("id", "")).strip()
+        if not item_id:
+            continue
+        by_id[item_id] = {
+            "id": item_id,
+            "question": str(item.get("question", "")).strip(),
+            "answer": str(item.get("answer", "")).strip(),
+        }
+    items = []
+    for topic in GLOSSARY_TOPICS:
+        found = by_id.get(topic["id"])
+        if found and found["answer"]:
+            items.append(
+                {
+                    "id": topic["id"],
+                    "question": found["question"] or topic["question"],
+                    "answer": found["answer"],
+                }
+            )
+        else:
+            items.append(
+                {
+                    "id": topic["id"],
+                    "question": topic["question"],
+                    "answer": topic["fallback"],
+                }
+            )
+    return items
+
+
+def generate_glossary() -> tuple[list[dict], str]:
+    prompt = _glossary_prompt()
+    errors: list[str] = []
+
+    if os.environ.get("GEMINI_API_KEY", "").strip():
+        try:
+            data = call_gemini_json(prompt)
+            items = _normalize_glossary_items(data.get("items") or [])
+            if len(items) >= 5:
+                return items, "gemini"
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"gemini: {exc}")
+
+    if os.environ.get("GROQ_API_KEY", "").strip():
+        try:
+            data = call_groq_json(prompt)
+            items = _normalize_glossary_items(data.get("items") or [])
+            if len(items) >= 5:
+                return items, "groq"
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"groq: {exc}")
+
+    if errors:
+        print("Glossário IA falhou; usando template:", "; ".join(errors))
+    return template_glossary_items(), "template"
+
+
+def save_glossary(items: list[dict], source: str) -> Path:
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": source,
+        "items": items,
+    }
+    GLOSSARY_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    GLOSSARY_OUTPUT.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return GLOSSARY_OUTPUT
+
+
+def generate_glossary_and_save() -> dict:
+    items, source = generate_glossary()
+    path = save_glossary(items, source)
+    return {"path": str(path), "source": source, "items": len(items)}
+
+
+def load_glossary() -> dict:
+    if GLOSSARY_OUTPUT.exists():
+        return json.loads(GLOSSARY_OUTPUT.read_text(encoding="utf-8"))
+    result = generate_glossary_and_save()
+    return json.loads(Path(result["path"]).read_text(encoding="utf-8"))
+
+
+def ensure_ai_glossary(*, force: bool = False) -> dict:
+    current = {}
+    if GLOSSARY_OUTPUT.exists():
+        try:
+            current = json.loads(GLOSSARY_OUTPUT.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            current = {}
+    source = str(current.get("source", "")).lower()
+    if not force and source in {"groq", "gemini"} and current.get("items"):
+        print(f"Glossário: mantendo source={source}")
+        return current
+    if not ai_keys_configured():
+        print("Glossário: sem chave de IA; usando template.")
+        if current.get("items"):
+            return current
+        return load_glossary()
+    print("Glossário: regenerando com IA…")
+    generate_glossary_and_save()
+    loaded = load_glossary()
+    print(f"Glossário: source={loaded.get('source')}")
+    return loaded
+
+
 if __name__ == "__main__":
     info = generate_and_save()
-    print(json.dumps(info, ensure_ascii=False, indent=2))
+    gloss = generate_glossary_and_save()
+    print(json.dumps({"narratives": info, "glossary": gloss}, ensure_ascii=False, indent=2))

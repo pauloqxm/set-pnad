@@ -1575,84 +1575,142 @@ def compare_grid_records() -> list[dict]:
     ].to_dict("records")
 
 
-def glossary_item(title: str, plain: str, detail: str) -> dmc.Stack:
-    return dmc.Stack(
-        gap=4,
+def bootstrap_glossary() -> dict:
+    try:
+        import generate_narratives
+
+        return generate_narratives.ensure_ai_glossary()
+    except Exception as exc:  # noqa: BLE001
+        print(f"Aviso: glossário IA indisponível ({exc})")
+        path = DATA_DIR / "glossary.json"
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+        return {"source": "template", "items": []}
+
+
+GLOSSARY_PAYLOAD = bootstrap_glossary()
+GLOSSARY_FROM_AI = str(GLOSSARY_PAYLOAD.get("source", "")).lower() in {
+    "groq",
+    "gemini",
+}
+GLOSSARY_ITEMS = list(GLOSSARY_PAYLOAD.get("items") or [])
+if not GLOSSARY_ITEMS:
+    # Fallback estático se o JSON ainda não existir.
+    GLOSSARY_ITEMS = [
+        {
+            "id": "desocupacao",
+            "question": "O que é a taxa de desocupação?",
+            "answer": (
+                "É o percentual de pessoas que estão sem trabalho e procurando emprego. "
+                "Quanto menor, melhor."
+            ),
+        },
+        {
+            "id": "nivel_ocupacao",
+            "question": "O que é o nível da ocupação?",
+            "answer": (
+                "É o percentual de pessoas de 14 anos ou mais que estão trabalhando. "
+                "Quanto maior, melhor."
+            ),
+        },
+        {
+            "id": "participacao",
+            "question": "O que é a taxa de participação na força de trabalho?",
+            "answer": (
+                "É o percentual de pessoas que estão no mercado de trabalho — trabalhando "
+                "ou procurando emprego."
+            ),
+        },
+        {
+            "id": "ocupadas",
+            "question": "O que significa o número de pessoas ocupadas?",
+            "answer": "É a quantidade de pessoas que estão trabalhando.",
+        },
+        {
+            "id": "desocupadas",
+            "question": "O que significa o número de pessoas desocupadas?",
+            "answer": (
+                "É a quantidade de pessoas sem trabalho que estão buscando uma ocupação."
+            ),
+        },
+        {
+            "id": "rendimento",
+            "question": "O que é o rendimento médio mensal?",
+            "answer": (
+                "É quanto, em média, a pessoa ocupada costuma ganhar por mês, "
+                "já descontando a inflação."
+            ),
+        },
+        {
+            "id": "subutilizacao",
+            "question": "O que é a taxa composta de subutilização da força de trabalho?",
+            "answer": (
+                "Indicador mais amplo do que o desemprego: junta desocupados, "
+                "subocupados e força de trabalho potencial. Quanto menor, melhor."
+            ),
+        },
+    ]
+
+
+def glossary_faq_block() -> html.Div:
+    accordion_items = [
+        dmc.AccordionItem(
+            [
+                dmc.AccordionControl(
+                    dmc.Text(item["question"], fw=700, size="sm"),
+                ),
+                dmc.AccordionPanel(
+                    dmc.Text(item["answer"], size="sm", c="dimmed"),
+                ),
+            ],
+            value=str(item["id"]),
+        )
+        for item in GLOSSARY_ITEMS
+    ]
+    sidebar_children = [
+        html.Div("?", className="faq-sidebar-icon", **{"aria-hidden": "true"}),
+        dmc.Text(
+            "O que significa cada indicador?",
+            fw=800,
+            ta="center",
+            style={"color": "white", "lineHeight": 1.25},
+        ),
+    ]
+    if GLOSSARY_FROM_AI:
+        sidebar_children.append(
+            dmc.Tooltip(
+                label="Texto feito com auxílio de IA",
+                withArrow=True,
+                position="bottom",
+                children=html.Span(
+                    "✦ IA",
+                    className="ai-assist-badge ai-assist-badge--on-dark",
+                    role="img",
+                    **{"aria-label": "Texto feito com auxílio de IA"},
+                ),
+            )
+        )
+
+    return html.Div(
+        className="faq-panel",
         children=[
-            dmc.Text(title, fw=700, size="sm"),
-            dmc.Text(plain, size="sm"),
-            dmc.Text(detail, size="xs", c="dimmed"),
+            html.Div(className="faq-sidebar", children=sidebar_children),
+            html.Div(
+                className="faq-accordion-wrap",
+                children=dmc.Accordion(
+                    children=accordion_items,
+                    value=str(GLOSSARY_ITEMS[0]["id"]) if GLOSSARY_ITEMS else None,
+                    variant="separated",
+                    radius="md",
+                    chevronPosition="right",
+                    className="faq-accordion",
+                ),
+            ),
         ],
     )
 
 
-GLOSSARY_ITEMS = [
-    (
-        "Taxa de desocupação",
-        "É o percentual de pessoas que estão sem trabalho e procurando emprego.",
-        "Em linguagem simples: a cada 100 pessoas na força de trabalho, quantas estão desempregadas. "
-        "Quanto menor, melhor.",
-    ),
-    (
-        "Nível da ocupação",
-        "É o percentual de pessoas de 14 anos ou mais que estão trabalhando.",
-        "Mostra quanto da população em idade de trabalhar está ocupada. "
-        "Quanto maior, melhor.",
-    ),
-    (
-        "Taxa de participação na força de trabalho",
-        "É o percentual de pessoas que estão no mercado de trabalho — trabalhando ou procurando emprego.",
-        "Ajuda a entender se mais gente está entrando ou saindo do mercado. "
-        "Não mede desemprego sozinha.",
-    ),
-    (
-        "Ocupadas",
-        "É a quantidade de pessoas que estão trabalhando.",
-        "Inclui emprego formal, informal, conta própria e outras formas de ocupação. "
-        "Aqui o número aparece em pessoas (não em milhares).",
-    ),
-    (
-        "Desocupadas",
-        "É a quantidade de pessoas sem trabalho que estão buscando uma ocupação.",
-        "São os desempregados na definição da PNAD. Quem desistiu de procurar não entra aqui.",
-    ),
-    (
-        "Rendimento médio mensal",
-        "É quanto, em média, a pessoa ocupada costuma ganhar por mês, já descontando a inflação.",
-        "O valor é real (ajustado pela inflação) e habitual (o normalmente recebido, não um mês atípico).",
-    ),
-    (
-        "Taxa composta de subutilização da força de trabalho",
-        "É um indicador mais amplo do que o desemprego: junta quem está desempregado, "
-        "quem trabalha menos horas do que gostaria e quem poderia trabalhar, mas não está plenamente disponível.",
-        "Serve para ver a folga do mercado de trabalho além da taxa de desocupação. "
-        "Quanto menor, melhor.",
-    ),
-]
-
-
-glossary_block = dmc.Card(
-    withBorder=True,
-    radius="md",
-    padding="xl",
-    children=[
-        dmc.Title("O que significa cada indicador?", order=3, mb="xs"),
-        dmc.Text(
-            "Guia rápido, em linguagem simples, para interpretar os números do painel.",
-            size="sm",
-            c="dimmed",
-            mb="md",
-        ),
-        dmc.SimpleGrid(
-            cols={"base": 1, "md": 2},
-            spacing="lg",
-            children=[
-                glossary_item(title, plain, detail)
-                for title, plain, detail in GLOSSARY_ITEMS
-            ],
-        ),
-    ],
-)
+glossary_block = glossary_faq_block()
 
 
 comparison_tab = dmc.Stack(

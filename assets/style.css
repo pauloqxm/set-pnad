@@ -149,6 +149,83 @@ body {
   white-space: nowrap;
 }
 
+.ai-assist-badge--on-dark {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.faq-panel {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #e4ebef;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 43, 73, 0.06);
+}
+
+.faq-sidebar {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 28px 20px;
+  background: var(--navy);
+  color: #fff;
+}
+
+.faq-sidebar-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(153, 204, 170, 0.22);
+  border: 2px solid var(--seafoam);
+  color: var(--seafoam);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.faq-accordion-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 16px;
+  background: #fff;
+}
+
+.faq-accordion .mantine-Accordion-item {
+  background: #fff;
+  border: 1px solid #e4ebef !important;
+  border-radius: 12px !important;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.faq-accordion .mantine-Accordion-control {
+  padding: 14px 16px;
+}
+
+.faq-accordion .mantine-Accordion-panel {
+  padding: 0 16px 14px;
+}
+
+@media (max-width: 768px) {
+  .faq-panel {
+    flex-direction: column;
+  }
+
+  .faq-sidebar {
+    flex-basis: auto;
+    padding: 20px 16px;
+  }
+}
+
 .chart-responsive,
 .chart-responsive .js-plotly-plot,
 .chart-responsive .plot-container,

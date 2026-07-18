@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-07-18T01:16:01.170430+00:00",
+  "source": "template",
+  "items": [
+    {
+      "id": "desocupacao",
+      "question": "O que é a taxa de desocupação?",
+      "answer": "É o percentual de pessoas que estão sem trabalho e procurando emprego. Em linguagem simples: a cada 100 pessoas na força de trabalho, quantas estão desempregadas. Quanto menor, melhor."
+    },
+    {
+      "id": "nivel_ocupacao",
+      "question": "O que é o nível da ocupação?",
+      "answer": "É o percentual de pessoas de 14 anos ou mais que estão trabalhando. Mostra quanto da população em idade de trabalhar está ocupada. Quanto maior, melhor."
+    },
+    {
+      "id": "participacao",
+      "question": "O que é a taxa de participação na força de trabalho?",
+      "answer": "É o percentual de pessoas que estão no mercado de trabalho — trabalhando ou procurando emprego. Ajuda a entender se mais gente está entrando ou saindo do mercado. Não mede desemprego sozinha."
+    },
+    {
+      "id": "ocupadas",
+      "question": "O que significa o número de pessoas ocupadas?",
+      "answer": "É a quantidade de pessoas que estão trabalhando. Inclui emprego formal, informal, conta própria e outras formas de ocupação. Neste painel o número aparece em pessoas (não em milhares)."
+    },
+    {
+      "id": "desocupadas",
+      "question": "O que significa o número de pessoas desocupadas?",
+      "answer": "É a quantidade de pessoas sem trabalho que estão buscando uma ocupação. São os desempregados na definição da PNAD. Quem desistiu de procurar não entra aqui."
+    },
+    {
+      "id": "rendimento",
+      "question": "O que é o rendimento médio mensal?",
+      "answer": "É quanto, em média, a pessoa ocupada costuma ganhar por mês, já descontando a inflação. O valor é real (ajustado pela inflação) e habitual (o normalmente recebido, não um mês atípico)."
+    },
+    {
+      "id": "subutilizacao",
+      "question": "O que é a taxa composta de subutilização da força de trabalho?",
+      "answer": "É um indicador mais amplo do que o desemprego: junta quem está desempregado, quem trabalha menos horas do que gostaria e quem poderia trabalhar, mas não está plenamente disponível. Serve para ver a folga do mercado além da taxa de desocupação. Quanto menor, melhor."
+    }
+  ]
+}
