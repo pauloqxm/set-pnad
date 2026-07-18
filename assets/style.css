@@ -1,22 +1,81 @@
+:root {
+  --navy: #002b49;
+  --teal-dark: #1e5a7a;
+  --teal: #72b1a1;
+  --green: #74b484;
+  --seafoam: #99ccaa;
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --text: #1b2433;
+  --muted: #5b6b7a;
+}
+
 body {
   margin: 0;
-  background: #f4f6f8;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Candara, Calibri, sans-serif;
 }
 
-.kpi-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+.app-shell {
+  min-height: 100vh;
+  background: var(--bg);
 }
 
-.kpi-card:hover {
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
+.app-header {
+  box-shadow: 0 2px 12px rgba(0, 43, 73, 0.18);
+}
+
+.panel-card,
+.mantine-Card-root {
+  background: var(--card);
+  border-color: #e4ebef !important;
+  box-shadow: 0 1px 3px rgba(0, 43, 73, 0.06);
+}
+
+.kpi-card--solid {
+  box-shadow: 0 6px 18px rgba(0, 43, 73, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card--solid:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 43, 73, 0.18);
+}
+
+.kpi-card--solid .mantine-Badge-root {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.main-tabs .mantine-Tabs-list {
+  gap: 8px;
+  border-bottom: none;
+}
+
+.main-tabs .mantine-Tabs-tab {
+  border-radius: 999px !important;
+  background: #e8eef1;
+  color: var(--navy);
+  font-weight: 700;
+  border: none !important;
+  padding: 8px 16px;
+}
+
+.main-tabs .mantine-Tabs-tab[data-active] {
+  background: var(--seafoam) !important;
+  color: var(--navy) !important;
+}
+
+.panel-narrative {
+  border-left: 4px solid var(--seafoam) !important;
 }
 
 .ag-theme-alpine {
-  --ag-font-family: Inter, "Segoe UI", Arial, sans-serif;
+  --ag-font-family: "Segoe UI", Candara, Calibri, sans-serif;
   --ag-font-size: 13px;
-  --ag-header-background-color: #eaf3fa;
-  --ag-border-color: #dce2e8;
+  --ag-header-background-color: #e7f1ec;
+  --ag-border-color: #d7e2e8;
+  --ag-header-foreground-color: var(--navy);
 }

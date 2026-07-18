@@ -90,6 +90,22 @@ SIG_LABEL = {"cresceu": "cresceu", "decresceu": "decresceu", "estavel": "estáve
 SIG_COLOR = {"cresceu": "teal", "decresceu": "red", "estavel": "gray"}
 SIG_ARROW = {"cresceu": "↑", "decresceu": "↓", "estavel": "→"}
 
+# Paleta inspirada no painel de referência (navy + teal/seafoam).
+THEME = {
+    "navy": "#002B49",
+    "header": "#002B49",
+    "teal_dark": "#1E5A7A",
+    "teal": "#72B1A1",
+    "green": "#74B484",
+    "seafoam": "#99CCAA",
+    "bg": "#F5F5F5",
+    "card": "#FFFFFF",
+    "muted": "#5B6B7A",
+    "text": "#1B2433",
+}
+KPI_CARD_COLORS = (THEME["green"], THEME["teal"], THEME["teal_dark"], THEME["navy"])
+CHART_COLORS = [THEME["teal_dark"], THEME["teal"], THEME["green"], "#C47B3A", "#8B5A7A"]
+
 
 def br(number: float, decimals: int = 1) -> str:
     text = f"{number:,.{decimals}f}"
@@ -190,15 +206,15 @@ def compare_value_label(value: float, unit: str) -> str:
 def compare_bar_color(geografia: str, *, total: bool = False) -> str:
     if total:
         if geografia == "Ceará":
-            return "#9BB8D4"
+            return "#A8C5B8"
         if geografia in {"Brasil", "Nordeste"}:
-            return "#B7BEC8"
-        return "#D5DEE8"
+            return "#B7C2CC"
+        return "#D6DEE5"
     if geografia == "Ceará":
-        return "#005CA9"
+        return THEME["navy"]
     if geografia in {"Brasil", "Nordeste"}:
-        return "#687386"
-    return "#74A7D4"
+        return THEME["teal_dark"]
+    return THEME["teal"]
 
 
 def compare_ordered_geos(subset: pd.DataFrame) -> list[str]:
@@ -494,65 +510,65 @@ def short_tri_label(period: str) -> str:
     return f"{quarter.get(label, label)}/{year}"
 
 
-def kpi_card(indicator: str, section: str, description: str) -> dmc.Card:
+def kpi_card(
+    indicator: str,
+    section: str,
+    description: str,
+    *,
+    color: str = THEME["teal_dark"],
+) -> dmc.Card:
     row = latest_row(indicator, section)
     current_period = str(row["periodo"])
     prev_period = year_ago_period(current_period)
     prev_row = period_row(indicator, section, prev_period) if prev_period else None
-    accent = {"cresceu": "#0B7285", "decresceu": "#C92A2A", "estavel": "#005CA9"}.get(
-        row["situacao_anual"], "#005CA9"
-    )
 
-    value_block = [
-        dmc.Text(
-            value_text(row),
-            fw=800,
-            style={"fontSize": "1.85rem", "lineHeight": 1.05, "color": "#0B1F33", "letterSpacing": "-0.02em"},
-        ),
+    footer_bits = [
+        dmc.Text(description, size="xs", style={"color": "rgba(255,255,255,0.82)"}),
     ]
     if prev_row is not None:
-        value_block.append(
-            dmc.Group(
-                gap=6,
-                align="center",
-                mt=6,
-                children=[
-                    dmc.Text(
-                        value_text(prev_row),
-                        size="sm",
-                        fw=700,
-                        c="gray.7",
-                        style={"fontSize": "0.95rem"},
-                    ),
-                    dmc.Text(
-                        f"mesmo tri. {short_tri_label(prev_period)}",
-                        size="xs",
-                        c="dimmed",
-                    ),
-                ],
+        footer_bits.append(
+            dmc.Text(
+                f"{value_text(prev_row)} · mesmo tri. {short_tri_label(prev_period)}",
+                size="xs",
+                fw=600,
+                mt=4,
+                style={"color": "rgba(255,255,255,0.95)"},
             )
         )
 
     return dmc.Card(
-        className="kpi-card",
-        withBorder=True,
+        className="kpi-card kpi-card--solid",
+        withBorder=False,
         radius="md",
         padding="lg",
-        style={"borderLeft": f"4px solid {accent}"},
+        style={"background": color, "color": "white", "minHeight": 188},
         children=[
             dmc.Text(
                 indicator,
                 size="xs",
-                c="dimmed",
-                fw=700,
+                fw=800,
                 tt="uppercase",
-                style={"letterSpacing": "0.04em"},
+                style={"letterSpacing": "0.06em", "color": "rgba(255,255,255,0.9)"},
             ),
-            dmc.Stack(gap=0, mt=8, mb=8, children=value_block),
-            dmc.Text(description, size="xs", c="dimmed", mb="md"),
+            dmc.Text(
+                value_text(row),
+                fw=800,
+                my=10,
+                style={
+                    "fontSize": "2rem",
+                    "lineHeight": 1.05,
+                    "color": "white",
+                    "letterSpacing": "-0.02em",
+                },
+            ),
+            dmc.Stack(gap=2, children=footer_bits),
             dmc.Group(
-                [sig_badge(row, "trimestral", "no tri."), sig_badge(row, "anual", "no ano")],
+                [
+                    sig_badge(row, "trimestral", "no tri."),
+                    sig_badge(row, "anual", "no ano"),
+                ],
                 gap="xs",
+                mt="md",
             ),
         ],
     )
@@ -585,7 +601,7 @@ def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph
     """Linha do trimestre atual + 3 anteriores, com rótulos formatados."""
     scale = series_scale(unit)
     figure = go.Figure()
-    colors = ["#005CA9", "#E67700", "#0B7285", "#9C36B5", "#C92A2A"]
+    colors = CHART_COLORS
 
     for index, indicator in enumerate(indicators):
         rows = df_serie[df_serie["indicador"] == indicator].sort_values("ordem_periodo")
@@ -758,14 +774,20 @@ def variation_bar_chart(section: str, scope: str, unit_filter: str = "Mil pessoa
 
 
 def narrative(children) -> dmc.Alert:
-    return dmc.Alert(children, color="blue", variant="light", radius="md")
+    return dmc.Alert(children, color="cyan", variant="light", radius="md", className="panel-narrative")
 
 
 def section_title(number: str, text: str) -> dmc.Group:
     return dmc.Group(
         [
-            dmc.Badge(number, size="lg", radius="sm", variant="filled", color="blue"),
-            dmc.Title(text, order=3),
+            dmc.Badge(
+                number,
+                size="lg",
+                radius="sm",
+                variant="filled",
+                style={"background": THEME["seafoam"], "color": THEME["navy"]},
+            ),
+            dmc.Title(text, order=3, style={"color": THEME["navy"]}),
         ],
         gap="sm",
         mt="xl",
@@ -796,42 +818,113 @@ app = Dash(
 
 server = app.server
 
+_desoc = latest_row("Taxa de desocupação", "Mercado de trabalho")
+_ocup = latest_row("Ocupadas", "Mercado de trabalho")
+_rend = latest_row("Rendimento médio mensal real habitual", "Rendimento")
+
 header = dmc.Paper(
+    className="app-header",
     radius=0,
     p="xl",
-    style={"backgroundColor": "#123b66", "color": "white"},
+    style={"backgroundColor": THEME["header"], "color": "white"},
     children=dmc.Container(
         size="xl",
         children=dmc.Group(
             justify="space-between",
-            align="flex-end",
+            align="center",
+            wrap="wrap",
+            gap="lg",
             children=[
                 dmc.Stack(
                     gap=4,
                     children=[
-                        dmc.Text("MERCADO DE TRABALHO", size="xs", fw=800,
-                                 style={"letterSpacing": "0.15em", "color": "#b8d7ef"}),
-                        dmc.Title("PNAD Contínua — Ceará", order=1, style={"color": "white"}),
+                        dmc.Text(
+                            "MERCADO DE TRABALHO",
+                            size="xs",
+                            fw=800,
+                            style={"letterSpacing": "0.16em", "color": THEME["seafoam"]},
+                        ),
+                        dmc.Title(
+                            "PNAD Contínua — Ceará",
+                            order=1,
+                            style={"color": "white", "margin": 0},
+                        ),
                         dmc.Text(
                             f"Trimestre atual: {LATEST} · comparação com os 3 trimestres anteriores",
-                            style={"color": "#d7e7f3"},
+                            style={"color": "rgba(255,255,255,0.78)"},
                         ),
                     ],
                 ),
-                dmc.Badge("Fonte: IBGE · pasta pnad/", size="lg", variant="white",
-                          color="blue", styles={"label": {"textTransform": "none"}}),
+                dmc.Group(
+                    gap="xl",
+                    align="center",
+                    children=[
+                        dmc.Stack(
+                            gap=0,
+                            align="flex-end",
+                            children=[
+                                dmc.Text(
+                                    value_text(_desoc),
+                                    fw=800,
+                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                ),
+                                dmc.Text(
+                                    "TAXA DE DESOCUPAÇÃO",
+                                    size="xs",
+                                    fw=700,
+                                    style={"color": THEME["seafoam"], "letterSpacing": "0.04em"},
+                                ),
+                            ],
+                        ),
+                        dmc.Stack(
+                            gap=0,
+                            align="flex-end",
+                            children=[
+                                dmc.Text(
+                                    value_text(_ocup),
+                                    fw=800,
+                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                ),
+                                dmc.Text(
+                                    "OCUPADAS",
+                                    size="xs",
+                                    fw=700,
+                                    style={"color": THEME["seafoam"], "letterSpacing": "0.04em"},
+                                ),
+                            ],
+                        ),
+                        dmc.Stack(
+                            gap=0,
+                            align="flex-end",
+                            children=[
+                                dmc.Text(
+                                    value_text(_rend),
+                                    fw=800,
+                                    style={"fontSize": "1.6rem", "color": "white", "lineHeight": 1},
+                                ),
+                                dmc.Text(
+                                    "RENDIMENTO MÉDIO",
+                                    size="xs",
+                                    fw=700,
+                                    style={"color": THEME["seafoam"], "letterSpacing": "0.04em"},
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
             ],
         ),
     ),
 )
 
 how_to_read = dmc.Card(
+    className="panel-card",
     withBorder=True,
     radius="md",
     padding="lg",
     mt="xl",
     children=[
-        dmc.Title("Como ler os dados", order=4, mb="xs"),
+        dmc.Title("Como ler os dados", order=4, mb="xs", style={"color": THEME["navy"]}),
         dmc.Text(
             f"A análise usa os quadros sintéticos da pasta pnad/. O trimestre atual é {LATEST}; "
             f"os gráficos de linha comparam esse resultado com {', '.join(PREVIOUS_PERIODS)}. "
@@ -850,10 +943,30 @@ kpis = dmc.SimpleGrid(
     spacing="md",
     mt="xl",
     children=[
-        kpi_card("Taxa de desocupação", "Mercado de trabalho", "Percentual de desocupados na força de trabalho"),
-        kpi_card("Ocupadas", "Mercado de trabalho", "Pessoas de 14 anos ou mais trabalhando"),
-        kpi_card("Desocupadas", "Mercado de trabalho", "Pessoas em busca de trabalho"),
-        kpi_card("Rendimento médio mensal real habitual", "Rendimento", "Todos os trabalhos, valores reais"),
+        kpi_card(
+            "Taxa de desocupação",
+            "Mercado de trabalho",
+            "Percentual de desocupados na força de trabalho",
+            color=KPI_CARD_COLORS[0],
+        ),
+        kpi_card(
+            "Ocupadas",
+            "Mercado de trabalho",
+            "Pessoas de 14 anos ou mais trabalhando",
+            color=KPI_CARD_COLORS[1],
+        ),
+        kpi_card(
+            "Desocupadas",
+            "Mercado de trabalho",
+            "Pessoas em busca de trabalho",
+            color=KPI_CARD_COLORS[2],
+        ),
+        kpi_card(
+            "Rendimento médio mensal real habitual",
+            "Rendimento",
+            "Todos os trabalhos, valores reais",
+            color=KPI_CARD_COLORS[3],
+        ),
     ],
 )
 
@@ -1445,12 +1558,14 @@ _update_children: list = [
                 mt="xs",
             ),
             dmc.Alert(
-                "A aba Análise do Ceará (detalhe com setas de significância) "
-                "usa uma base curada e não é reescrita automaticamente neste fluxo.",
+                "Envie somente o quadro sintético do trimestre mais recente "
+                "(pnadc_YYYYQQ_...). PDFs mais antigos são rejeitados para não "
+                "corromper a série. A análise detalhada do Ceará (setas IBGE) "
+                "continua na base curada e não é reescrita automaticamente.",
                 color="yellow",
                 variant="light",
                 mt="md",
-                title="Limitação",
+                title="Importante",
             ),
         ],
     ),
@@ -1541,29 +1656,53 @@ _update_children.append(
 update_tab = dmc.Stack(gap="md", children=_update_children)
 
 app.layout = dmc.MantineProvider(
-    theme={"fontFamily": "Inter, Segoe UI, sans-serif", "primaryColor": "blue"},
+    theme={
+        "fontFamily": "Segoe UI, Candara, Calibri, sans-serif",
+        "primaryColor": "teal",
+        "colors": {
+            "teal": [
+                "#edf7f4",
+                "#d5ebe4",
+                "#99CCAA",
+                "#72B1A1",
+                "#5a9d8d",
+                "#1E5A7A",
+                "#184d69",
+                "#002B49",
+                "#001f35",
+                "#001526",
+            ]
+        },
+    },
     children=[
-        header,
-        dmc.Container(
-            size="xl",
+        html.Div(
+            className="app-shell",
             children=[
-                dmc.Tabs(
-                    value="ceara",
+                header,
+                dmc.Container(
+                    size="xl",
+                    py="md",
                     children=[
-                        dmc.TabsList(
-                            [
-                                dmc.TabsTab("Análise do Ceará", value="ceara"),
-                                dmc.TabsTab("Comparativo regional", value="comparativo"),
-                                dmc.TabsTab("Atualizar dados", value="atualizar"),
+                        dmc.Tabs(
+                            value="ceara",
+                            className="main-tabs",
+                            children=[
+                                dmc.TabsList(
+                                    [
+                                        dmc.TabsTab("Análise do Ceará", value="ceara"),
+                                        dmc.TabsTab("Comparativo regional", value="comparativo"),
+                                        dmc.TabsTab("Atualizar dados", value="atualizar"),
+                                    ],
+                                    mb="md",
+                                ),
+                                dmc.TabsPanel(ceara_analysis, value="ceara"),
+                                dmc.TabsPanel(comparison_tab, value="comparativo"),
+                                dmc.TabsPanel(update_tab, value="atualizar"),
                             ],
-                            mb="md",
                         ),
-                        dmc.TabsPanel(ceara_analysis, value="ceara"),
-                        dmc.TabsPanel(comparison_tab, value="comparativo"),
-                        dmc.TabsPanel(update_tab, value="atualizar"),
+                        footer,
                     ],
                 ),
-                footer,
             ],
         ),
     ],

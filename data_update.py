@@ -89,6 +89,47 @@ def save_pdf(filename: str, raw: bytes) -> Path:
     return path
 
 
+def quarter_code_from_name(filename: str) -> str:
+    match = re.search(r"pnadc_(\d{6})_trimestre", Path(filename).name, re.I)
+    if not match:
+        raise ValueError(f"Não foi possível ler o código YYYYQQ de {filename}.")
+    return match.group(1)
+
+
+def latest_known_quarter_code() -> str | None:
+    codes: list[str] = []
+    for path, code, *_ in extract_series.list_quadro_pdfs(PNAD_DIR):
+        codes.append(code)
+    series_csv = DATA_DIR / "pnad_ce_serie.csv"
+    if series_csv.exists():
+        try:
+            import pandas as pd
+
+            frame = pd.read_csv(series_csv, usecols=["codigo_trimestre"])
+            codes.extend(
+                str(code).zfill(6)
+                for code in frame["codigo_trimestre"].dropna().unique().tolist()
+            )
+        except Exception:
+            pass
+    return max(codes) if codes else None
+
+
+def ensure_upload_is_current_or_newer(filename: str) -> None:
+    """Impede PDF antigo de virar o 'trimestre atual' e corromper a série."""
+    uploaded = quarter_code_from_name(filename)
+    current = latest_known_quarter_code()
+    if current and uploaded < current:
+        label_up = extract_series.period_from_code(uploaded)[0]
+        label_cur = extract_series.period_from_code(current)[0]
+        raise ValueError(
+            f"O PDF enviado é mais antigo que a série atual. "
+            f"Enviado: {filename} ({label_up}). "
+            f"Atual na base: pnadc_{current}_... ({label_cur}). "
+            "Envie apenas o quadro sintético do trimestre mais recente do IBGE."
+        )
+
+
 def regenerate_csvs(*, force_series: bool = True) -> dict:
     """Regenera série temporal e comparativo regional a partir de pnad/."""
     PNAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -328,6 +369,10 @@ def process_upload(
 ) -> dict:
     if not validate_token(token):
         raise PermissionError("Token de administração inválido.")
+
+    # Completa pnad/ com os PDFs do GitHub antes de validar antiguidade.
+    sync_pnad_pdfs_from_github()
+    ensure_upload_is_current_or_newer(filename)
 
     raw = decode_upload(contents)
     pdf_path = save_pdf(filename, raw)
