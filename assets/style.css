@@ -191,6 +191,41 @@ body {
   font-weight: 700;
 }
 
+.sig-badge .mantine-Badge-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-arrow {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  vertical-align: middle;
+}
+
+.trend-arrow--up {
+  -webkit-mask-image: url("/assets/arrow-up.svg");
+  mask-image: url("/assets/arrow-up.svg");
+}
+
+.trend-arrow--down {
+  -webkit-mask-image: url("/assets/arrow-down.svg");
+  mask-image: url("/assets/arrow-down.svg");
+}
+
+.trend-arrow--flat {
+  -webkit-mask-image: url("/assets/arrow-flat.svg");
+  mask-image: url("/assets/arrow-flat.svg");
+  opacity: 0.9;
+}
+
 .ai-assist-badge {
   display: inline-flex;
   align-items: center;

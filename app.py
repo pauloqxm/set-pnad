@@ -94,7 +94,34 @@ def reload_runtime_data() -> None:
 
 SIG_LABEL = {"cresceu": "cresceu", "decresceu": "decresceu", "estavel": "estável"}
 SIG_COLOR = {"cresceu": "teal", "decresceu": "red", "estavel": "gray"}
-SIG_ARROW = {"cresceu": "↑", "decresceu": "↓", "estavel": "→"}
+ARROW_CHAR = {"up": "↑", "down": "↓", "flat": "→"}
+
+
+def delta_signed_value(row: pd.Series, scope: str) -> float | None:
+    """Valor numérico da variação exibida (p.p. para taxas; % para demais)."""
+    if row["unidade"] == "%":
+        value = row[f"variacao_{scope}_abs"]
+    else:
+        value = row[f"variacao_{scope}_pct"]
+    if pd.isna(value):
+        return None
+    return float(value)
+
+
+def arrow_direction(value: float | None) -> str:
+    if value is None or abs(value) < 1e-12:
+        return "flat"
+    return "up" if value > 0 else "down"
+
+
+def arrow_svg(direction: str, *, size: int = 14) -> html.Span:
+    """Seta SVG moderna: up / down / flat (positivo / negativo / ~zero)."""
+    key = direction if direction in {"up", "down", "flat"} else "flat"
+    return html.Span(
+        className=f"trend-arrow trend-arrow--{key}",
+        style={"width": f"{size}px", "height": f"{size}px"},
+        **{"aria-hidden": "true", "role": "img", "title": ARROW_CHAR[key]},
+    )
 
 # Paleta inspirada no painel de referência (navy + teal/seafoam).
 THEME = {
@@ -158,13 +185,18 @@ def delta_text(row: pd.Series, scope: str) -> str:
 
 def sig_badge(row: pd.Series, scope: str, label: str) -> dmc.Badge:
     situ = row[f"situacao_{scope}"]
+    direction = arrow_direction(delta_signed_value(row, scope))
     return dmc.Badge(
-        f"{SIG_ARROW[situ]} {delta_text(row, scope)} {label}",
-        color=SIG_COLOR[situ],
+        [
+            arrow_svg(direction, size=13),
+            html.Span(f"{delta_text(row, scope)} {label}"),
+        ],
+        color=SIG_COLOR.get(situ, "gray"),
         variant="light",
         radius="sm",
         size="lg",
-        styles={"label": {"textTransform": "none"}},
+        className="sig-badge",
+        styles={"label": {"textTransform": "none", "display": "inline-flex", "alignItems": "center", "gap": "6px"}},
     )
 
 
@@ -1033,14 +1065,32 @@ def section_title(number: str, text: str) -> dmc.Group:
 def sig_legend() -> dmc.Group:
     return dmc.Group(
         [
-            dmc.Badge("↑ cresceu (significativo)", color="teal", variant="light",
-                      styles={"label": {"textTransform": "none"}}),
-            dmc.Badge("↓ decresceu (significativo)", color="red", variant="light",
-                      styles={"label": {"textTransform": "none"}}),
-            dmc.Badge("→ estável (dentro da margem de erro)", color="gray", variant="light",
-                      styles={"label": {"textTransform": "none"}}),
+            dmc.Badge(
+                [arrow_svg("up", size=12), html.Span("aumento (número positivo)")],
+                color="teal",
+                variant="light",
+                styles={"label": {"textTransform": "none", "display": "inline-flex", "alignItems": "center", "gap": "6px"}},
+            ),
+            dmc.Badge(
+                [arrow_svg("down", size=12), html.Span("queda (número negativo)")],
+                color="red",
+                variant="light",
+                styles={"label": {"textTransform": "none", "display": "inline-flex", "alignItems": "center", "gap": "6px"}},
+            ),
+            dmc.Badge(
+                [arrow_svg("flat", size=12), html.Span("sem variação")],
+                color="gray",
+                variant="light",
+                styles={"label": {"textTransform": "none", "display": "inline-flex", "alignItems": "center", "gap": "6px"}},
+            ),
+            dmc.Text(
+                "Cores das badges: significativo no IBGE (teal/vermelho) ou estável (cinza).",
+                size="xs",
+                c="dimmed",
+            ),
         ],
         gap="xs",
+        align="center",
     )
 
 
@@ -2225,7 +2275,8 @@ def grid_records(subset: pd.DataFrame) -> list[dict]:
         situ = row[f"situacao_{scope}"]
         if pd.isna(situ):
             return ""
-        return f"{SIG_ARROW[situ]} {SIG_LABEL[situ]}"
+        direction = arrow_direction(delta_signed_value(row, scope))
+        return f"{ARROW_CHAR[direction]} {SIG_LABEL[situ]}"
 
     def fmt_unit(unit: str) -> str:
         if unit == "Mil pessoas":
