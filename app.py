@@ -605,8 +605,8 @@ def metro_bar_color(nome_curto: str) -> str:
 
 
 def metro_ordered_labels(subset: pd.DataFrame) -> list[str]:
-    """Ordem crescente do valor (menor no topo). Plotly desenha de baixo para cima."""
-    frame = subset.sort_values("valor", ascending=True, kind="mergesort")
+    """Ordem decrescente do valor (maior no topo). Plotly desenha de baixo para cima."""
+    frame = subset.sort_values("valor", ascending=False, kind="mergesort")
     labels = frame["nome_curto"].tolist()
     return list(reversed(labels))
 
@@ -2728,7 +2728,7 @@ def update_metro_chart(indicator: str, tipo_filtro: str | None):
         children=[
             dmc.Text(f"Capitais e RMs — {indicator_label(indicator)}", fw=600),
             dmc.Text(
-                "Ordenação crescente pelo valor (menor no topo). "
+                "Ordenação decrescente pelo valor (maior no topo). "
                 "Fortaleza e RM Fortaleza em azul escuro. "
                 "O quadro do IBGE para capitais/RMs traz só estes dois indicadores.",
                 size="xs",
