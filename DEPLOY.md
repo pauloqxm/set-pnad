@@ -16,12 +16,14 @@ analise_pnad/
 ├── data_update.py
 ├── extract_series.py
 ├── extract_regional.py
+├── extract_capitals_rm.py
 ├── assets/
 │   └── style.css
 └── data/
     ├── pnad_ce_1tri2026.csv
     ├── pnad_ce_serie.csv
-    └── pnad_comparativo_1tri2026.csv
+    ├── pnad_comparativo_1tri2026.csv
+    └── pnad_capitais_rm_nordeste.csv
 ```
 
 ## Fonte de dados
@@ -30,6 +32,7 @@ analise_pnad/
 |---------|------------------|------------------------|
 | `data/pnad_ce_serie.csv` | Série (atual + 3 trimestres) | Sim |
 | `data/pnad_comparativo_1tri2026.csv` | Comparativo regional | Sim |
+| `data/pnad_capitais_rm_nordeste.csv` | Capitais e RMs do Nordeste | Sim |
 | `data/pnad_ce_1tri2026.csv` | Análise detalhada + setas IBGE | Não (base curada) |
 
 ## Pré-requisitos
@@ -46,7 +49,7 @@ cd analise_pnad
 
 git init
 git add Dockerfile DEPLOY.md requirements.txt app.py data_update.py \
-  extract_series.py extract_regional.py assets data \
+  extract_series.py extract_regional.py extract_capitals_rm.py assets data \
   .dockerignore .gitignore README.md
 git commit -m "Deploy: dashboard PNAD Ceará"
 git branch -M main

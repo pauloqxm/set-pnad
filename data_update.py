@@ -11,6 +11,7 @@ from pathlib import Path
 
 import requests
 
+import extract_capitals_rm
 import extract_regional
 import extract_series
 
@@ -27,8 +28,10 @@ PDF_NAME_RE = re.compile(
 CSV_PATHS = (
     DATA_DIR / "pnad_ce_serie.csv",
     DATA_DIR / "pnad_comparativo_1tri2026.csv",
+    DATA_DIR / "pnad_capitais_rm_nordeste.csv",
     DATA_DIR / "series_extraction_audit.json",
     DATA_DIR / "regional_extraction_audit.json",
+    DATA_DIR / "capitais_rm_extraction_audit.json",
     DATA_DIR / "narratives.json",
     DATA_DIR / "glossary.json",
 )
@@ -174,11 +177,26 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
         encoding="utf-8",
     )
 
+    metro_frame, metro_audit = extract_capitals_rm.build_dataframe(pdf_path)
+    extract_capitals_rm.OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    metro_frame.to_csv(
+        extract_capitals_rm.OUTPUT_CSV,
+        index=False,
+        encoding="utf-8-sig",
+        float_format="%.1f",
+    )
+    extract_capitals_rm.AUDIT_JSON.write_text(
+        json.dumps(metro_audit, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
     return {
         "serie_periodos": series_audit.get("periodos", []),
         "serie_linhas": len(series_frame),
         "comparativo_periodo": regional_audit.get("periodo"),
         "comparativo_linhas": len(regional_frame),
+        "capitais_rm_periodo": metro_audit.get("periodo"),
+        "capitais_rm_linhas": len(metro_frame),
         "pdf_usado_comparativo": pdf_path.name,
         "pdfs_baixados_github": synced,
         "force_series": force_series,

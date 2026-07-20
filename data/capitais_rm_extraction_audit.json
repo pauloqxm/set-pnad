@@ -1,0 +1,188 @@
+{
+  "arquivo_pdf": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pnad\\pnadc_202601_trimestre_quadroSintetico.pdf",
+  "periodo": "jan-fev-mar/2026",
+  "geografias": [
+    {
+      "pagina": 74,
+      "geografia": "Município de São Luís (MA)",
+      "uf": "MA",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 9.6,
+        "Rendimento médio mensal real habitual": 3109.0
+      }
+    },
+    {
+      "pagina": 75,
+      "geografia": "Município de Teresina (PI)",
+      "uf": "PI",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 7.4,
+        "Rendimento médio mensal real habitual": 4169.0
+      }
+    },
+    {
+      "pagina": 76,
+      "geografia": "Município de Fortaleza (CE)",
+      "uf": "CE",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 8.0,
+        "Rendimento médio mensal real habitual": 3780.0
+      }
+    },
+    {
+      "pagina": 77,
+      "geografia": "Município de Natal (RN)",
+      "uf": "RN",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 5.9,
+        "Rendimento médio mensal real habitual": 4315.0
+      }
+    },
+    {
+      "pagina": 78,
+      "geografia": "Município de João Pessoa (PB)",
+      "uf": "PB",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 6.8,
+        "Rendimento médio mensal real habitual": 4415.0
+      }
+    },
+    {
+      "pagina": 79,
+      "geografia": "Município de Recife (PE)",
+      "uf": "PE",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 8.8,
+        "Rendimento médio mensal real habitual": 4318.0
+      }
+    },
+    {
+      "pagina": 80,
+      "geografia": "Município de Maceió (AL)",
+      "uf": "AL",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 7.7,
+        "Rendimento médio mensal real habitual": 3292.0
+      }
+    },
+    {
+      "pagina": 81,
+      "geografia": "Município de Aracaju (SE)",
+      "uf": "SE",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 7.9,
+        "Rendimento médio mensal real habitual": 4747.0
+      }
+    },
+    {
+      "pagina": 82,
+      "geografia": "Município de Salvador (BA)",
+      "uf": "BA",
+      "tipo": "capital",
+      "metricas": {
+        "Taxa de desocupação": 10.2,
+        "Rendimento médio mensal real habitual": 3568.0
+      }
+    },
+    {
+      "pagina": 97,
+      "geografia": "Região Metropolitana da Grande São Luís (MA)",
+      "uf": "MA",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 7.6,
+        "Rendimento médio mensal real habitual": 2913.0
+      }
+    },
+    {
+      "pagina": 98,
+      "geografia": "Região Metropolitana da Grande Teresina (PI)",
+      "uf": "PI",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 8.2,
+        "Rendimento médio mensal real habitual": 3717.0
+      }
+    },
+    {
+      "pagina": 99,
+      "geografia": "Região Metropolitana de Fortaleza (CE)",
+      "uf": "CE",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 8.3,
+        "Rendimento médio mensal real habitual": 3292.0
+      }
+    },
+    {
+      "pagina": 100,
+      "geografia": "Região Metropolitana de Natal (RN)",
+      "uf": "RN",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 5.9,
+        "Rendimento médio mensal real habitual": 3646.0
+      }
+    },
+    {
+      "pagina": 101,
+      "geografia": "Região Metropolitana de João Pessoa (PB)",
+      "uf": "PB",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 7.6,
+        "Rendimento médio mensal real habitual": 3773.0
+      }
+    },
+    {
+      "pagina": 102,
+      "geografia": "Região Metropolitana de Recife (PE)",
+      "uf": "PE",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 9.6,
+        "Rendimento médio mensal real habitual": 3417.0
+      }
+    },
+    {
+      "pagina": 103,
+      "geografia": "Região Metropolitana de Maceió (AL)",
+      "uf": "AL",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 7.9,
+        "Rendimento médio mensal real habitual": 3086.0
+      }
+    },
+    {
+      "pagina": 104,
+      "geografia": "Região Metropolitana de Aracaju (SE)",
+      "uf": "SE",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 8.9,
+        "Rendimento médio mensal real habitual": 4157.0
+      }
+    },
+    {
+      "pagina": 105,
+      "geografia": "Região Metropolitana de Salvador (BA)",
+      "uf": "BA",
+      "tipo": "rm",
+      "metricas": {
+        "Taxa de desocupação": 11.2,
+        "Rendimento médio mensal real habitual": 3313.0
+      }
+    }
+  ],
+  "linhas_csv": 36,
+  "nota": "Quadro reduzido: só taxa de desocupação e rendimento médio. UF de Fortaleza é forçada para CE quando o PDF extrai PI."
+}

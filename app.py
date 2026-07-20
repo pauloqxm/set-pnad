@@ -28,6 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CSV_PATH = DATA_DIR / "pnad_ce_1tri2026.csv"
 COMPARE_CSV = DATA_DIR / "pnad_comparativo_1tri2026.csv"
+METRO_CSV = DATA_DIR / "pnad_capitais_rm_nordeste.csv"
 SERIES_CSV = DATA_DIR / "pnad_ce_serie.csv"
 LATEST = "jan-fev-mar/2026"
 GEO_ORDER = (
@@ -52,6 +53,11 @@ COMPARE_INDICATORS = [
     "Rendimento médio mensal real habitual",
     "Taxa composta de subutilização da força de trabalho",
 ]
+METRO_INDICATORS = [
+    "Taxa de desocupação",
+    "Rendimento médio mensal real habitual",
+]
+METRO_UF_ORDER = ("MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA")
 
 if not CSV_PATH.exists():
     raise FileNotFoundError(
@@ -61,6 +67,10 @@ if not COMPARE_CSV.exists():
     raise FileNotFoundError(
         f"Base comparativa não encontrada em {COMPARE_CSV}. Execute: python extract_regional.py"
     )
+if not METRO_CSV.exists():
+    raise FileNotFoundError(
+        f"Base capitais/RMs não encontrada em {METRO_CSV}. Execute: python extract_capitals_rm.py"
+    )
 if not SERIES_CSV.exists():
     raise FileNotFoundError(
         f"Série temporal não encontrada em {SERIES_CSV}. Execute: python extract_series.py"
@@ -68,6 +78,7 @@ if not SERIES_CSV.exists():
 
 df = pd.read_csv(CSV_PATH)
 df_cmp = pd.read_csv(COMPARE_CSV)
+df_metro = pd.read_csv(METRO_CSV)
 df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
 PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
 DETAIL_PERIOD_ORDER = (
@@ -80,9 +91,10 @@ PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
 
 def reload_runtime_data() -> None:
     """Recarrega CSVs em memória após upload (série e comparativo)."""
-    global df, df_cmp, df_serie, PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS
+    global df, df_cmp, df_metro, df_serie, PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS
     df = pd.read_csv(CSV_PATH)
     df_cmp = pd.read_csv(COMPARE_CSV)
+    df_metro = pd.read_csv(METRO_CSV)
     df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
     PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
     DETAIL_PERIOD_ORDER = (
@@ -563,6 +575,194 @@ def compare_summary_card(
                             ),
                             dmc.Text(
                                 compare_value_label(rows["Nordeste"]["valor"], unit),
+                                size="sm",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.95)"},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def metro_row(nome_curto: str, indicator: str) -> pd.Series:
+    rows = df_metro[
+        (df_metro["nome_curto"] == nome_curto) & (df_metro["indicador"] == indicator)
+    ]
+    if rows.empty:
+        raise ValueError(f"Indicador metro não encontrado: {nome_curto} / {indicator}")
+    return rows.iloc[0]
+
+
+def metro_bar_color(nome_curto: str) -> str:
+    if "Fortaleza" in nome_curto:
+        return THEME["navy"]
+    if nome_curto.startswith("RM "):
+        return THEME["teal"]
+    return THEME["teal_dark"]
+
+
+def metro_ordered_labels(subset: pd.DataFrame) -> list[str]:
+    """Ordena por UF do Nordeste; capital antes da RM. Plotly inverte na vertical."""
+    frame = subset.copy()
+    uf_rank = {uf: index for index, uf in enumerate(METRO_UF_ORDER)}
+    tipo_rank = {"capital": 0, "rm": 1}
+    frame["_uf"] = frame["uf"].map(uf_rank)
+    frame["_tipo"] = frame["tipo"].map(tipo_rank)
+    frame = frame.sort_values(["_uf", "_tipo"])
+    labels = frame["nome_curto"].tolist()
+    return list(reversed(labels))
+
+
+def metro_chart(indicator: str, tipo_filtro: str = "todos") -> dcc.Graph:
+    subset = df_metro[df_metro["indicador"] == indicator].copy()
+    if tipo_filtro == "capital":
+        subset = subset[subset["tipo"] == "capital"]
+    elif tipo_filtro == "rm":
+        subset = subset[subset["tipo"] == "rm"]
+    labels = metro_ordered_labels(subset)
+    lookup = subset.set_index("nome_curto")
+    unit = str(subset["unidade"].iloc[0])
+    values = [float(lookup.loc[label, "valor"]) for label in labels]
+    text_labels = [compare_value_label(value, unit) for value in values]
+    max_value = max(values) if values else 1
+
+    figure = go.Figure(
+        data=[
+            go.Bar(
+                name=indicator,
+                y=labels,
+                x=values,
+                orientation="h",
+                text=text_labels,
+                textposition="outside",
+                textfont={"size": 10, "family": "Segoe UI, sans-serif", "color": THEME["text"]},
+                cliponaxis=False,
+                marker={
+                    "color": [metro_bar_color(label) for label in labels],
+                    "line": {"width": 0},
+                },
+                hovertemplate="%{y}<br>%{text}<extra></extra>",
+            )
+        ]
+    )
+
+    if unit == "%":
+        tick_values = [tick for tick in (0, 2, 4, 6, 8, 10, 12) if tick <= max(12, max_value * 1.15)]
+        tick_text = [f"{br(tick, 0)}%" for tick in tick_values]
+    else:
+        step = 500 if max_value < 6000 else 1000
+        tick_values = list(range(0, int(max_value * 1.2) + step, step))
+        tick_text = [br(tick, 0) for tick in tick_values]
+
+    figure.update_layout(
+        template="plotly_white",
+        bargap=0.28,
+        autosize=True,
+        height=max(360, 34 * len(labels) + 80),
+        margin={"l": 110, "r": 72, "t": 24, "b": 40},
+        xaxis={
+            "title": None,
+            "tickmode": "array",
+            "tickvals": tick_values,
+            "ticktext": tick_text,
+            "tickfont": {"size": 10},
+            "gridcolor": "#E6EBF0",
+            "zeroline": False,
+            "range": [0, max_value * 1.22],
+        },
+        yaxis={"title": None, "automargin": True, "tickfont": {"size": 11}},
+        font={"family": "Segoe UI, Candara, sans-serif", "color": THEME["text"], "size": 11},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        showlegend=False,
+    )
+    return dcc.Graph(
+        id="metro-chart",
+        figure=figure,
+        config={"displayModeBar": False, "responsive": True},
+        className="chart-responsive",
+        style={"width": "100%", "minWidth": 0},
+    )
+
+
+def metro_summary_card(
+    title: str,
+    indicator: str,
+    *,
+    color: str = THEME["teal_dark"],
+) -> dmc.Card:
+    fortaleza = metro_row("Fortaleza", indicator)
+    rm = metro_row("RM Fortaleza", indicator)
+    ceara = df_cmp[
+        (df_cmp["geografia"] == "Ceará") & (df_cmp["indicador"] == indicator)
+    ].iloc[0]
+    unit = str(fortaleza["unidade"])
+    return dmc.Card(
+        className="kpi-card kpi-card--solid",
+        withBorder=False,
+        radius="md",
+        padding="lg",
+        style={"background": color, "color": "white", "minHeight": 148},
+        children=[
+            dmc.Text(
+                title,
+                size="xs",
+                fw=800,
+                tt="uppercase",
+                style={"letterSpacing": "0.06em", "color": "rgba(255,255,255,0.9)"},
+            ),
+            dmc.Group(
+                justify="space-between",
+                mt="md",
+                align="flex-start",
+                wrap="nowrap",
+                children=[
+                    dmc.Stack(
+                        gap=2,
+                        children=[
+                            dmc.Text(
+                                "Fortaleza",
+                                size="xs",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.78)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(float(fortaleza["valor"]), unit),
+                                fw=800,
+                                className="kpi-value",
+                                style={"color": "white", "fontSize": "1.35rem", "lineHeight": 1.1},
+                            ),
+                        ],
+                    ),
+                    dmc.Stack(
+                        gap=2,
+                        children=[
+                            dmc.Text(
+                                "RM Fortaleza",
+                                size="xs",
+                                style={"color": "rgba(255,255,255,0.72)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(float(rm["valor"]), unit),
+                                size="sm",
+                                fw=700,
+                                style={"color": "rgba(255,255,255,0.95)"},
+                            ),
+                        ],
+                    ),
+                    dmc.Stack(
+                        gap=2,
+                        children=[
+                            dmc.Text(
+                                "Ceará",
+                                size="xs",
+                                style={"color": "rgba(255,255,255,0.72)"},
+                            ),
+                            dmc.Text(
+                                compare_value_label(float(ceara["valor"]), unit),
                                 size="sm",
                                 fw=700,
                                 style={"color": "rgba(255,255,255,0.95)"},
@@ -1667,6 +1867,23 @@ def compare_grid_records() -> list[dict]:
     ].to_dict("records")
 
 
+def metro_grid_records() -> list[dict]:
+    table = df_metro.copy()
+    uf_rank = {uf: index for index, uf in enumerate(METRO_UF_ORDER)}
+    tipo_rank = {"capital": 0, "rm": 1}
+    table["_uf"] = table["uf"].map(uf_rank)
+    table["_tipo"] = table["tipo"].map(tipo_rank)
+    table = table.sort_values(["_uf", "_tipo", "indicador"])
+    table["valor"] = [
+        compare_value_label(float(value), unit)
+        for value, unit in zip(table["valor"], table["unidade"], strict=True)
+    ]
+    table["indicador"] = table["indicador"].map(indicator_label)
+    return table[
+        ["nome_curto", "uf", "grupo_geografico", "geografia", "indicador", "unidade", "valor"]
+    ].to_dict("records")
+
+
 def bootstrap_glossary() -> dict:
     try:
         import generate_narratives
@@ -1900,6 +2117,110 @@ comparison_tab = dmc.Stack(
     ],
 )
 
+metro_period = (
+    str(df_metro["periodo"].iloc[0]) if not df_metro.empty else LATEST
+)
+metro_tab = dmc.Stack(
+    gap="md",
+    mt="md",
+    children=[
+        dmc.Card(
+            withBorder=True,
+            radius="md",
+            padding="lg",
+            children=[
+                dmc.Title("Capitais e regiões metropolitanas do Nordeste", order=3, mb="xs"),
+                dmc.Text(
+                    "No quadro sintético do IBGE, capitais e RMs têm divulgação reduzida: "
+                    "apenas taxa de desocupação e rendimento médio mensal real habitual. "
+                    f"Trimestre {metro_period}. Fortaleza e a RM de Fortaleza destacadas.",
+                    size="sm",
+                    c="dimmed",
+                ),
+            ],
+        ),
+        dmc.SimpleGrid(
+            cols={"base": 1, "sm": 2},
+            spacing="md",
+            children=[
+                metro_summary_card(
+                    "Taxa de desocupação",
+                    "Taxa de desocupação",
+                    color=KPI_CARD_COLORS[0],
+                ),
+                metro_summary_card(
+                    "Rendimento médio mensal",
+                    "Rendimento médio mensal real habitual",
+                    color=KPI_CARD_COLORS[3],
+                ),
+            ],
+        ),
+        dmc.Card(
+            withBorder=True,
+            radius="md",
+            padding="lg",
+            children=[
+                dmc.Group(
+                    grow=True,
+                    align="flex-end",
+                    mb="md",
+                    children=[
+                        dmc.Select(
+                            id="metro-indicator",
+                            label="Indicador",
+                            data=[
+                                {"label": indicator_label(item), "value": item}
+                                for item in METRO_INDICATORS
+                            ],
+                            value="Taxa de desocupação",
+                            clearable=False,
+                        ),
+                        dmc.SegmentedControl(
+                            id="metro-tipo-filtro",
+                            data=[
+                                {"label": "Capitais e RMs", "value": "todos"},
+                                {"label": "Só capitais", "value": "capital"},
+                                {"label": "Só RMs", "value": "rm"},
+                            ],
+                            value="todos",
+                            fullWidth=True,
+                        ),
+                    ],
+                ),
+                html.Div(id="metro-chart-container"),
+            ],
+        ),
+        dmc.Card(
+            withBorder=True,
+            radius="md",
+            padding="lg",
+            children=[
+                dmc.Text("Tabela — capitais e RMs do Nordeste", fw=600, mb="sm"),
+                dag.AgGrid(
+                    id="metro-grid",
+                    className="ag-theme-alpine",
+                    rowData=metro_grid_records(),
+                    columnDefs=[
+                        {"field": "nome_curto", "headerName": "Local", "width": 140},
+                        {"field": "uf", "headerName": "UF", "width": 70},
+                        {"field": "grupo_geografico", "headerName": "Tipo", "width": 150},
+                        {"field": "geografia", "headerName": "Geografia IBGE", "flex": 1, "minWidth": 240},
+                        {"field": "indicador", "headerName": "Indicador", "flex": 1, "minWidth": 200},
+                        {"field": "unidade", "headerName": "Unidade", "width": 90},
+                        {"field": "valor", "headerName": "Valor", "width": 120},
+                    ],
+                    defaultColDef={"sortable": True, "filter": True, "resizable": True},
+                    dashGridOptions={
+                        "pagination": True,
+                        "paginationPageSize": 18,
+                        "domLayout": "autoHeight",
+                    },
+                ),
+            ],
+        ),
+    ],
+)
+
 footer = dmc.Text(
     "Nota metodológica: variações de taxas em pontos percentuais (p.p.); demais variações em "
     "valores absolutos e percentuais. As situações (setas) reproduzem os testes de significância "
@@ -1923,8 +2244,9 @@ _update_children: list = [
             dmc.Text(
                 "Envie o quadro sintético do IBGE no padrão "
                 "pnadc_YYYYQQ_trimestre_quadroSintetico.pdf. "
-                "O sistema regenera a série temporal, o comparativo regional e "
-                "os textos de análise (IA gratuita Groq/Gemini, com fallback automático), "
+                "O sistema regenera a série temporal, o comparativo regional, "
+                "capitais/RMs do Nordeste e os textos de análise "
+                "(IA gratuita Groq/Gemini, com fallback automático), "
                 "e pode publicar os arquivos no GitHub para o Railway redesplegar.",
                 size="sm",
                 c="dimmed",
@@ -2059,12 +2381,14 @@ dashboard_shell = html.Div(
                                 [
                                     dmc.TabsTab("Ceará", value="ceara"),
                                     dmc.TabsTab("Comparativo", value="comparativo"),
+                                    dmc.TabsTab("Capitais e RMs", value="capitais-rm"),
                                     dmc.TabsTab("Atualizar dados", value="atualizar"),
                                 ],
                                 mb="md",
                             ),
                             dmc.TabsPanel(ceara_analysis, value="ceara"),
                             dmc.TabsPanel(comparison_tab, value="comparativo"),
+                            dmc.TabsPanel(metro_tab, value="capitais-rm"),
                             dmc.TabsPanel(update_tab, value="atualizar"),
                         ],
                     ),
@@ -2397,6 +2721,31 @@ def update_compare_chart(indicator: str, hidden_geos: list[str] | None):
 
 
 @callback(
+    Output("metro-chart-container", "children"),
+    Input("metro-indicator", "value"),
+    Input("metro-tipo-filtro", "value"),
+)
+def update_metro_chart(indicator: str, tipo_filtro: str | None):
+    unit = df_metro.loc[df_metro["indicador"] == indicator, "unidade"].iloc[0]
+    filtro = tipo_filtro or "todos"
+    return dmc.Stack(
+        gap="xs",
+        children=[
+            dmc.Text(f"Capitais e RMs — {indicator_label(indicator)}", fw=600),
+            dmc.Text(
+                "Ordenação por UF do Nordeste (capital e depois RM). "
+                "Fortaleza e RM Fortaleza em azul escuro. "
+                "O quadro do IBGE para capitais/RMs traz só estes dois indicadores.",
+                size="xs",
+                c="dimmed",
+            ),
+            metro_chart(indicator, filtro),
+            dmc.Text(f"Unidade de referência: {unit}", size="xs", c="dimmed"),
+        ],
+    )
+
+
+@callback(
     Output("data-grid", "rowData"),
     Input("filter-section", "value"),
     Input("filter-periods", "value"),
@@ -2479,6 +2828,11 @@ def process_pdf_upload(n_clicks, contents, filename, token, push_github):
             f"Comparativo: {stats.get('comparativo_periodo')} "
             f"({stats.get('comparativo_linhas', 0)} linhas) "
             f"via {stats.get('pdf_usado_comparativo')}",
+            size="sm",
+        ),
+        dmc.Text(
+            f"Capitais/RMs Nordeste: {stats.get('capitais_rm_periodo')} "
+            f"({stats.get('capitais_rm_linhas', 0)} linhas)",
             size="sm",
         ),
         dmc.Text(result["aviso"], size="sm", c="dimmed", mt="xs"),
