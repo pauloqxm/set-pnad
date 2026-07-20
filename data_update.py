@@ -29,9 +29,11 @@ CSV_PATHS = (
     DATA_DIR / "pnad_ce_serie.csv",
     DATA_DIR / "pnad_comparativo_1tri2026.csv",
     DATA_DIR / "pnad_capitais_rm_nordeste.csv",
+    DATA_DIR / "pnad_capitais_rm_serie.csv",
     DATA_DIR / "series_extraction_audit.json",
     DATA_DIR / "regional_extraction_audit.json",
     DATA_DIR / "capitais_rm_extraction_audit.json",
+    DATA_DIR / "capitais_rm_serie_audit.json",
     DATA_DIR / "narratives.json",
     DATA_DIR / "glossary.json",
 )
@@ -190,6 +192,19 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
         encoding="utf-8",
     )
 
+    metro_serie, metro_serie_audit = extract_capitals_rm.build_series(PNAD_DIR, last_n=4)
+    extract_capitals_rm.OUTPUT_SERIE_CSV.parent.mkdir(parents=True, exist_ok=True)
+    metro_serie.to_csv(
+        extract_capitals_rm.OUTPUT_SERIE_CSV,
+        index=False,
+        encoding="utf-8-sig",
+        float_format="%.1f",
+    )
+    extract_capitals_rm.SERIE_AUDIT_JSON.write_text(
+        json.dumps(metro_serie_audit, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
     return {
         "serie_periodos": series_audit.get("periodos", []),
         "serie_linhas": len(series_frame),
@@ -197,6 +212,8 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
         "comparativo_linhas": len(regional_frame),
         "capitais_rm_periodo": metro_audit.get("periodo"),
         "capitais_rm_linhas": len(metro_frame),
+        "capitais_rm_serie_periodos": metro_serie_audit.get("periodos", []),
+        "capitais_rm_serie_linhas": len(metro_serie),
         "pdf_usado_comparativo": pdf_path.name,
         "pdfs_baixados_github": synced,
         "force_series": force_series,

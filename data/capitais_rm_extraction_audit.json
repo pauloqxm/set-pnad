@@ -8,8 +8,16 @@
       "uf": "MA",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 9.6,
-        "Rendimento médio mensal real habitual": 3109.0
+        "Taxa de desocupação": {
+          "atual": 9.6,
+          "ano_anterior": 8.0,
+          "tri_anterior": 7.4
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3109.0,
+          "ano_anterior": 3290.0,
+          "tri_anterior": 2997.0
+        }
       }
     },
     {
@@ -18,8 +26,16 @@
       "uf": "PI",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 7.4,
-        "Rendimento médio mensal real habitual": 4169.0
+        "Taxa de desocupação": {
+          "atual": 7.4,
+          "ano_anterior": 8.8,
+          "tri_anterior": 7.9
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4169.0,
+          "ano_anterior": 4043.0,
+          "tri_anterior": 4266.0
+        }
       }
     },
     {
@@ -28,8 +44,16 @@
       "uf": "CE",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 8.0,
-        "Rendimento médio mensal real habitual": 3780.0
+        "Taxa de desocupação": {
+          "atual": 8.0,
+          "ano_anterior": 8.8,
+          "tri_anterior": 5.9
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3780.0,
+          "ano_anterior": 3489.0,
+          "tri_anterior": 3600.0
+        }
       }
     },
     {
@@ -38,8 +62,16 @@
       "uf": "RN",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 5.9,
-        "Rendimento médio mensal real habitual": 4315.0
+        "Taxa de desocupação": {
+          "atual": 5.9,
+          "ano_anterior": 6.6,
+          "tri_anterior": 6.1
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4315.0,
+          "ano_anterior": 4602.0,
+          "tri_anterior": 4428.0
+        }
       }
     },
     {
@@ -48,8 +80,16 @@
       "uf": "PB",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 6.8,
-        "Rendimento médio mensal real habitual": 4415.0
+        "Taxa de desocupação": {
+          "atual": 6.8,
+          "ano_anterior": 10.3,
+          "tri_anterior": 6.1
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4415.0,
+          "ano_anterior": 4371.0,
+          "tri_anterior": 4473.0
+        }
       }
     },
     {
@@ -58,8 +98,16 @@
       "uf": "PE",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 8.8,
-        "Rendimento médio mensal real habitual": 4318.0
+        "Taxa de desocupação": {
+          "atual": 8.8,
+          "ano_anterior": 9.9,
+          "tri_anterior": 7.8
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4318.0,
+          "ano_anterior": 4343.0,
+          "tri_anterior": 4257.0
+        }
       }
     },
     {
@@ -68,8 +116,16 @@
       "uf": "AL",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 7.7,
-        "Rendimento médio mensal real habitual": 3292.0
+        "Taxa de desocupação": {
+          "atual": 7.7,
+          "ano_anterior": 7.9,
+          "tri_anterior": 7.2
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3292.0,
+          "ano_anterior": 3211.0,
+          "tri_anterior": 3466.0
+        }
       }
     },
     {
@@ -78,8 +134,16 @@
       "uf": "SE",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 7.9,
-        "Rendimento médio mensal real habitual": 4747.0
+        "Taxa de desocupação": {
+          "atual": 7.9,
+          "ano_anterior": 9.0,
+          "tri_anterior": 8.4
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4747.0,
+          "ano_anterior": 4080.0,
+          "tri_anterior": 4469.0
+        }
       }
     },
     {
@@ -88,8 +152,16 @@
       "uf": "BA",
       "tipo": "capital",
       "metricas": {
-        "Taxa de desocupação": 10.2,
-        "Rendimento médio mensal real habitual": 3568.0
+        "Taxa de desocupação": {
+          "atual": 10.2,
+          "ano_anterior": 9.3,
+          "tri_anterior": 8.2
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3568.0,
+          "ano_anterior": 3127.0,
+          "tri_anterior": 3180.0
+        }
       }
     },
     {
@@ -98,8 +170,16 @@
       "uf": "MA",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 7.6,
-        "Rendimento médio mensal real habitual": 2913.0
+        "Taxa de desocupação": {
+          "atual": 7.6,
+          "ano_anterior": 7.3,
+          "tri_anterior": 6.6
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 2913.0,
+          "ano_anterior": 2936.0,
+          "tri_anterior": 2831.0
+        }
       }
     },
     {
@@ -108,8 +188,16 @@
       "uf": "PI",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 8.2,
-        "Rendimento médio mensal real habitual": 3717.0
+        "Taxa de desocupação": {
+          "atual": 8.2,
+          "ano_anterior": 8.8,
+          "tri_anterior": 8.0
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3717.0,
+          "ano_anterior": 3612.0,
+          "tri_anterior": 3739.0
+        }
       }
     },
     {
@@ -118,8 +206,16 @@
       "uf": "CE",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 8.3,
-        "Rendimento médio mensal real habitual": 3292.0
+        "Taxa de desocupação": {
+          "atual": 8.3,
+          "ano_anterior": 8.2,
+          "tri_anterior": 5.4
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3292.0,
+          "ano_anterior": 3011.0,
+          "tri_anterior": 3099.0
+        }
       }
     },
     {
@@ -128,8 +224,16 @@
       "uf": "RN",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 5.9,
-        "Rendimento médio mensal real habitual": 3646.0
+        "Taxa de desocupação": {
+          "atual": 5.9,
+          "ano_anterior": 8.3,
+          "tri_anterior": 5.5
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3646.0,
+          "ano_anterior": 3563.0,
+          "tri_anterior": 3699.0
+        }
       }
     },
     {
@@ -138,8 +242,16 @@
       "uf": "PB",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 7.6,
-        "Rendimento médio mensal real habitual": 3773.0
+        "Taxa de desocupação": {
+          "atual": 7.6,
+          "ano_anterior": 10.5,
+          "tri_anterior": 5.9
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3773.0,
+          "ano_anterior": 3581.0,
+          "tri_anterior": 3746.0
+        }
       }
     },
     {
@@ -148,8 +260,16 @@
       "uf": "PE",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 9.6,
-        "Rendimento médio mensal real habitual": 3417.0
+        "Taxa de desocupação": {
+          "atual": 9.6,
+          "ano_anterior": 11.7,
+          "tri_anterior": 9.0
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3417.0,
+          "ano_anterior": 3422.0,
+          "tri_anterior": 3292.0
+        }
       }
     },
     {
@@ -158,8 +278,16 @@
       "uf": "AL",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 7.9,
-        "Rendimento médio mensal real habitual": 3086.0
+        "Taxa de desocupação": {
+          "atual": 7.9,
+          "ano_anterior": 8.2,
+          "tri_anterior": 7.2
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3086.0,
+          "ano_anterior": 3027.0,
+          "tri_anterior": 3248.0
+        }
       }
     },
     {
@@ -168,8 +296,16 @@
       "uf": "SE",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 8.9,
-        "Rendimento médio mensal real habitual": 4157.0
+        "Taxa de desocupação": {
+          "atual": 8.9,
+          "ano_anterior": 9.7,
+          "tri_anterior": 7.5
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 4157.0,
+          "ano_anterior": 3467.0,
+          "tri_anterior": 3985.0
+        }
       }
     },
     {
@@ -178,11 +314,19 @@
       "uf": "BA",
       "tipo": "rm",
       "metricas": {
-        "Taxa de desocupação": 11.2,
-        "Rendimento médio mensal real habitual": 3313.0
+        "Taxa de desocupação": {
+          "atual": 11.2,
+          "ano_anterior": 9.9,
+          "tri_anterior": 9.5
+        },
+        "Rendimento médio mensal real habitual": {
+          "atual": 3313.0,
+          "ano_anterior": 2997.0,
+          "tri_anterior": 3004.0
+        }
       }
     }
   ],
   "linhas_csv": 36,
-  "nota": "Quadro reduzido: só taxa de desocupação e rendimento médio. UF de Fortaleza é forçada para CE quando o PDF extrai PI."
+  "nota": "Quadro reduzido: só taxa de desocupação e rendimento médio. UF de Fortaleza é forçada para CE quando o PDF extrai PI. valor_ano_anterior = mesma trimestre do ano anterior (1ª coluna)."
 }

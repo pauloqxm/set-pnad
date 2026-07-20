@@ -33,6 +33,7 @@ analise_pnad/
 | `data/pnad_ce_serie.csv` | Série (atual + 3 trimestres) | Sim |
 | `data/pnad_comparativo_1tri2026.csv` | Comparativo regional | Sim |
 | `data/pnad_capitais_rm_nordeste.csv` | Capitais e RMs do Nordeste | Sim |
+| `data/pnad_capitais_rm_serie.csv` | Série Fortaleza / RM Fortaleza | Sim |
 | `data/pnad_ce_1tri2026.csv` | Análise detalhada + setas IBGE | Não (base curada) |
 
 ## Pré-requisitos

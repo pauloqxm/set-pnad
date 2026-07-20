@@ -29,6 +29,7 @@ DATA_DIR = BASE_DIR / "data"
 CSV_PATH = DATA_DIR / "pnad_ce_1tri2026.csv"
 COMPARE_CSV = DATA_DIR / "pnad_comparativo_1tri2026.csv"
 METRO_CSV = DATA_DIR / "pnad_capitais_rm_nordeste.csv"
+METRO_SERIE_CSV = DATA_DIR / "pnad_capitais_rm_serie.csv"
 SERIES_CSV = DATA_DIR / "pnad_ce_serie.csv"
 LATEST = "jan-fev-mar/2026"
 GEO_ORDER = (
@@ -71,6 +72,10 @@ if not METRO_CSV.exists():
     raise FileNotFoundError(
         f"Base capitais/RMs não encontrada em {METRO_CSV}. Execute: python extract_capitals_rm.py"
     )
+if not METRO_SERIE_CSV.exists():
+    raise FileNotFoundError(
+        f"Série capitais/RMs não encontrada em {METRO_SERIE_CSV}. Execute: python extract_capitals_rm.py"
+    )
 if not SERIES_CSV.exists():
     raise FileNotFoundError(
         f"Série temporal não encontrada em {SERIES_CSV}. Execute: python extract_series.py"
@@ -79,6 +84,7 @@ if not SERIES_CSV.exists():
 df = pd.read_csv(CSV_PATH)
 df_cmp = pd.read_csv(COMPARE_CSV)
 df_metro = pd.read_csv(METRO_CSV)
+df_metro_serie = pd.read_csv(METRO_SERIE_CSV).sort_values("ordem_periodo")
 df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
 PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
 DETAIL_PERIOD_ORDER = (
@@ -87,14 +93,17 @@ DETAIL_PERIOD_ORDER = (
 # KPIs e análise detalhada usam o CSV curado; a série pode ter outros trimestres.
 LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
 PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
+METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
 
 
 def reload_runtime_data() -> None:
     """Recarrega CSVs em memória após upload (série e comparativo)."""
-    global df, df_cmp, df_metro, df_serie, PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS
+    global df, df_cmp, df_metro, df_metro_serie, df_serie
+    global PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS, METRO_PERIOD_ORDER
     df = pd.read_csv(CSV_PATH)
     df_cmp = pd.read_csv(COMPARE_CSV)
     df_metro = pd.read_csv(METRO_CSV)
+    df_metro_serie = pd.read_csv(METRO_SERIE_CSV).sort_values("ordem_periodo")
     df_serie = pd.read_csv(SERIES_CSV).sort_values("ordem_periodo")
     PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
     DETAIL_PERIOD_ORDER = (
@@ -102,6 +111,7 @@ def reload_runtime_data() -> None:
     )
     LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
     PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
+    METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
 
 
 SIG_LABEL = {"cresceu": "cresceu", "decresceu": "decresceu", "estavel": "estável"}
@@ -695,12 +705,107 @@ def metro_summary_card(
         (df_cmp["geografia"] == "Ceará") & (df_cmp["indicador"] == indicator)
     ].iloc[0]
     unit = str(fortaleza["unidade"])
+    prev_period = year_ago_period(str(fortaleza.get("periodo", LATEST)))
+    ceara_prev = None
+    if prev_period:
+        rows = df_serie[
+            (df_serie["indicador"] == indicator) & (df_serie["periodo"] == prev_period)
+        ]
+        if rows.empty:
+            # Fallback na base curada do Ceará.
+            detail = df[
+                (df["indicador"] == indicator)
+                & (df["periodo"] == prev_period)
+            ]
+            if not detail.empty:
+                ceara_prev = float(detail.iloc[0]["valor"])
+        else:
+            ceara_prev = float(rows.iloc[0]["valor"])
+
+    def _geo_stack(label: str, value: float, year_ago: float | None) -> dmc.Stack:
+        children = [
+            dmc.Text(label, size="xs", fw=700, style={"color": "rgba(255,255,255,0.78)"}),
+            dmc.Text(
+                compare_value_label(value, unit),
+                fw=800,
+                className="kpi-value",
+                style={"color": "white", "fontSize": "1.25rem", "lineHeight": 1.1},
+            ),
+        ]
+        if year_ago is not None and prev_period:
+            children.append(
+                dmc.Text(
+                    f"Ano ant.: {compare_value_label(year_ago, unit)}",
+                    size="xs",
+                    mt=4,
+                    style={"color": "rgba(255,255,255,0.78)"},
+                )
+            )
+        return dmc.Stack(gap=2, children=children)
+
+    fortaleza_yoy = (
+        float(fortaleza["valor_ano_anterior"])
+        if "valor_ano_anterior" in fortaleza.index and pd.notna(fortaleza["valor_ano_anterior"])
+        else None
+    )
+    rm_yoy = (
+        float(rm["valor_ano_anterior"])
+        if "valor_ano_anterior" in rm.index and pd.notna(rm["valor_ano_anterior"])
+        else None
+    )
+
+    yoy_box = None
+    if prev_period and any(v is not None for v in (fortaleza_yoy, rm_yoy, ceara_prev)):
+        yoy_box = html.Div(
+            className="kpi-yoy-box",
+            children=[
+                dmc.Text(
+                    f"Ano anterior · {short_tri_label(prev_period)}",
+                    size="xs",
+                    fw=700,
+                    tt="uppercase",
+                    style={"letterSpacing": "0.05em", "color": "rgba(255,255,255,0.72)"},
+                ),
+                dmc.Group(
+                    justify="space-between",
+                    mt=6,
+                    grow=True,
+                    children=[
+                        dmc.Text(
+                            f"For {compare_value_label(fortaleza_yoy, unit)}"
+                            if fortaleza_yoy is not None
+                            else "For —",
+                            size="xs",
+                            fw=700,
+                            style={"color": "rgba(255,255,255,0.95)"},
+                        ),
+                        dmc.Text(
+                            f"RM {compare_value_label(rm_yoy, unit)}"
+                            if rm_yoy is not None
+                            else "RM —",
+                            size="xs",
+                            fw=700,
+                            style={"color": "rgba(255,255,255,0.95)"},
+                        ),
+                        dmc.Text(
+                            f"CE {compare_value_label(ceara_prev, unit)}"
+                            if ceara_prev is not None
+                            else "CE —",
+                            size="xs",
+                            fw=700,
+                            style={"color": "rgba(255,255,255,0.95)"},
+                        ),
+                    ],
+                ),
+            ],
+        )
+
     return dmc.Card(
         className="kpi-card kpi-card--solid",
         withBorder=False,
         radius="md",
         padding="lg",
-        style={"background": color, "color": "white", "minHeight": 148},
+        style={"background": color, "color": "white", "minHeight": 188},
         children=[
             dmc.Text(
                 title,
@@ -715,58 +820,105 @@ def metro_summary_card(
                 align="flex-start",
                 wrap="nowrap",
                 children=[
-                    dmc.Stack(
-                        gap=2,
-                        children=[
-                            dmc.Text(
-                                "Fortaleza",
-                                size="xs",
-                                fw=700,
-                                style={"color": "rgba(255,255,255,0.78)"},
-                            ),
-                            dmc.Text(
-                                compare_value_label(float(fortaleza["valor"]), unit),
-                                fw=800,
-                                className="kpi-value",
-                                style={"color": "white", "fontSize": "1.35rem", "lineHeight": 1.1},
-                            ),
-                        ],
-                    ),
-                    dmc.Stack(
-                        gap=2,
-                        children=[
-                            dmc.Text(
-                                "RM Fortaleza",
-                                size="xs",
-                                style={"color": "rgba(255,255,255,0.72)"},
-                            ),
-                            dmc.Text(
-                                compare_value_label(float(rm["valor"]), unit),
-                                size="sm",
-                                fw=700,
-                                style={"color": "rgba(255,255,255,0.95)"},
-                            ),
-                        ],
-                    ),
-                    dmc.Stack(
-                        gap=2,
-                        children=[
-                            dmc.Text(
-                                "Ceará",
-                                size="xs",
-                                style={"color": "rgba(255,255,255,0.72)"},
-                            ),
-                            dmc.Text(
-                                compare_value_label(float(ceara["valor"]), unit),
-                                size="sm",
-                                fw=700,
-                                style={"color": "rgba(255,255,255,0.95)"},
-                            ),
-                        ],
-                    ),
+                    _geo_stack("Fortaleza", float(fortaleza["valor"]), None),
+                    _geo_stack("RM Fortaleza", float(rm["valor"]), None),
+                    _geo_stack("Ceará", float(ceara["valor"]), None),
                 ],
             ),
+            *([yoy_box] if yoy_box is not None else []),
         ],
+    )
+
+
+def metro_line_chart(indicator: str) -> dcc.Graph:
+    """Linha: trimestre atual + 3 anteriores (Fortaleza, RM Fortaleza e Ceará)."""
+    periods = METRO_PERIOD_ORDER or PERIOD_ORDER
+    if len(periods) > 4:
+        periods = periods[-4:]
+    unit = "%" if indicator.startswith("Taxa") else "R$"
+    series_defs = [
+        ("Fortaleza", THEME["navy"], "metro"),
+        ("RM Fortaleza", THEME["teal"], "metro"),
+        ("Ceará", THEME["teal_dark"], "ceara"),
+    ]
+    figure = go.Figure()
+    text_positions = ("top center", "bottom center", "middle right")
+
+    for index, (label, color, source) in enumerate(series_defs):
+        values: list[float | None] = []
+        texts: list[str] = []
+        for period in periods:
+            if source == "metro":
+                rows = df_metro_serie[
+                    (df_metro_serie["nome_curto"] == label)
+                    & (df_metro_serie["indicador"] == indicator)
+                    & (df_metro_serie["periodo"] == period)
+                ]
+            else:
+                rows = df_serie[
+                    (df_serie["indicador"] == indicator) & (df_serie["periodo"] == period)
+                ]
+            if rows.empty:
+                values.append(None)
+                texts.append("")
+            else:
+                value = float(rows["valor"].iloc[0])
+                values.append(value)
+                texts.append(compare_value_label(value, unit))
+
+        figure.add_trace(
+            go.Scatter(
+                name=label,
+                x=[short_tri_label(period) for period in periods],
+                y=values,
+                mode="lines+markers+text",
+                text=texts,
+                textposition=text_positions[index % len(text_positions)],
+                textfont={"size": 10, "color": THEME["text"]},
+                line={"color": color, "width": 3},
+                marker={"size": 8, "color": color},
+                connectgaps=False,
+                hovertemplate="%{fullData.name}<br>%{x}: %{text}<extra></extra>",
+            )
+        )
+
+    y_vals = [v for trace in figure.data for v in trace.y if v is not None]
+    y_max = max(y_vals) if y_vals else 1
+    y_min = min(y_vals) if y_vals else 0
+    pad = max((y_max - y_min) * 0.18, y_max * 0.08 if y_max else 1)
+
+    figure.update_layout(
+        template="plotly_white",
+        height=320,
+        margin={"l": 48, "r": 24, "t": 36, "b": 48},
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "left",
+            "x": 0,
+            "font": {"size": 11},
+        },
+        xaxis={"title": None, "tickfont": {"size": 11}, "gridcolor": "#E6EBF0"},
+        yaxis={
+            "title": None,
+            "tickfont": {"size": 10},
+            "gridcolor": "#E6EBF0",
+            "zeroline": False,
+            "range": [max(0, y_min - pad), y_max + pad],
+            "ticksuffix": "%" if unit == "%" else "",
+            "tickprefix": "R$ " if unit == "R$" else "",
+        },
+        font={"family": "Segoe UI, Candara, sans-serif", "color": THEME["text"], "size": 11},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+    )
+    return dcc.Graph(
+        id={"type": "metro-line-chart", "indicator": indicator},
+        figure=figure,
+        config={"displayModeBar": False, "responsive": True},
+        className="chart-responsive",
+        style={"width": "100%", "minWidth": 0},
     )
 
 
@@ -2150,6 +2302,42 @@ metro_tab = dmc.Stack(
                 ),
             ],
         ),
+        dmc.SimpleGrid(
+            cols={"base": 1, "lg": 2},
+            spacing="md",
+            children=[
+                dmc.Card(
+                    withBorder=True,
+                    radius="md",
+                    padding="lg",
+                    children=[
+                        dmc.Text("Taxa de desocupação — série recente", fw=600, mb=4),
+                        dmc.Text(
+                            "Trimestre atual e os três anteriores: Fortaleza, RM Fortaleza e Ceará.",
+                            size="xs",
+                            c="dimmed",
+                            mb="sm",
+                        ),
+                        metro_line_chart("Taxa de desocupação"),
+                    ],
+                ),
+                dmc.Card(
+                    withBorder=True,
+                    radius="md",
+                    padding="lg",
+                    children=[
+                        dmc.Text("Rendimento médio mensal — série recente", fw=600, mb=4),
+                        dmc.Text(
+                            "Trimestre atual e os três anteriores: Fortaleza, RM Fortaleza e Ceará.",
+                            size="xs",
+                            c="dimmed",
+                            mb="sm",
+                        ),
+                        metro_line_chart("Rendimento médio mensal real habitual"),
+                    ],
+                ),
+            ],
+        ),
         dmc.Card(
             withBorder=True,
             radius="md",
@@ -2828,6 +3016,12 @@ def process_pdf_upload(n_clicks, contents, filename, token, push_github):
         dmc.Text(
             f"Capitais/RMs Nordeste: {stats.get('capitais_rm_periodo')} "
             f"({stats.get('capitais_rm_linhas', 0)} linhas)",
+            size="sm",
+        ),
+        dmc.Text(
+            "Série Fortaleza/RM: "
+            + " | ".join(stats.get("capitais_rm_serie_periodos", []))
+            + f" ({stats.get('capitais_rm_serie_linhas', 0)} linhas)",
             size="sm",
         ),
         dmc.Text(result["aviso"], size="sm", c="dimmed", mt="xs"),
