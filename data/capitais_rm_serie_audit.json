@@ -1,16 +1,16 @@
 {
-  "pasta": "G:\\Meu Drive\\1. NUVEM\\DADOS\\5_DADOS_SET\\analise_pnad\\pnad",
+  "pasta": "/app/pnad",
   "arquivos_usados": [
-    "pnadc_202502_trimestre_quadroSintetico.pdf",
     "pnadc_202503_trimestre_quadroSintetico.pdf",
     "pnadc_202504_trimestre_quadroSintetico.pdf",
-    "pnadc_202601_trimestre_quadroSintetico.pdf"
+    "pnadc_202601_trimestre_quadroSintetico.pdf",
+    "pnadc_202602_trimestre_quadroSintetico.pdf"
   ],
   "periodos": [
-    "abr-mai-jun/2025",
     "jul-ago-set/2025",
     "out-nov-dez/2025",
-    "jan-fev-mar/2026"
+    "jan-fev-mar/2026",
+    "abr-mai-jun/2026"
   ],
   "locais": [
     "Fortaleza",
