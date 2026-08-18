@@ -1703,6 +1703,7 @@ kpis = dmc.SimpleGrid(
     cols={"base": 1, "sm": 2, "lg": 4},
     spacing="md",
     mt="xl",
+    className="print-cols-4",
     children=[
         kpi_card(
             "Taxa de desocupação",
@@ -1853,6 +1854,7 @@ section5 = dmc.Stack(
         dmc.SimpleGrid(
             cols={"base": 1, "md": 2},
             spacing="md",
+            className="print-cols-2",
             children=[
                 dmc.Card(
                     withBorder=True, radius="md", padding="lg",
@@ -2016,6 +2018,7 @@ ceara_analysis = dmc.Stack(
                 dmc.SimpleGrid(
                     cols={"base": 1, "lg": 2},
                     spacing="md",
+                    className="print-cols-2",
                     children=[
                         dmc.Card(
                             withBorder=True, radius="md", padding="md",
@@ -2271,6 +2274,7 @@ comparison_tab = dmc.Stack(
         dmc.SimpleGrid(
             cols={"base": 1, "sm": 2, "lg": 4},
             spacing="md",
+            className="print-cols-4",
             children=[
                 compare_summary_card(
                     "Taxa de desocupação",
@@ -2369,6 +2373,7 @@ metro_tab = dmc.Stack(
         dmc.SimpleGrid(
             cols={"base": 1, "sm": 2},
             spacing="md",
+            className="print-cols-2",
             children=[
                 metro_summary_card(
                     "Taxa de desocupação",
@@ -2385,6 +2390,7 @@ metro_tab = dmc.Stack(
         dmc.SimpleGrid(
             cols={"base": 1, "lg": 2},
             spacing="md",
+            className="print-cols-2",
             children=[
                 dmc.Card(
                     withBorder=True,

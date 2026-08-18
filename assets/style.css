@@ -452,8 +452,8 @@ body {
 
 /* Impressão — A4 horizontal, fidelidade visual ao HTML */
 @page {
-  size: A4 landscape;
-  margin: 10mm 12mm;
+  size: 297mm 210mm;
+  margin: 8mm 10mm;
 }
 
 @media print {
@@ -479,6 +479,23 @@ body {
     page-break-after: avoid;
   }
 
+  .header-metrics {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    width: auto !important;
+  }
+
+  .header-metrics > * {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
+
+  .header-metric-value {
+    font-size: 1.1rem !important;
+  }
+
   .app-main {
     padding-top: 0 !important;
   }
@@ -492,6 +509,54 @@ body {
   .mantine-Container-root {
     padding-left: 0 !important;
     padding-right: 0 !important;
+  }
+
+  .print-cols-4.mantine-SimpleGrid-root,
+  .print-cols-4 {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .print-cols-2.mantine-SimpleGrid-root,
+  .print-cols-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .print-cols-4 > *,
+  .print-cols-2 > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .print-cols-4 .kpi-card--solid,
+  .print-cols-4 .mantine-Card-root.kpi-card--solid {
+    padding: 10px 12px !important;
+  }
+
+  .print-cols-4 .kpi-value {
+    font-size: 1.2rem !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .print-cols-4 .kpi-yoy-box {
+    margin-top: 6px;
+    padding: 6px 8px;
+  }
+
+  .print-cols-2 .chart-responsive {
+    min-height: 0 !important;
+  }
+
+  .print-cols-2 .chart-responsive .js-plotly-plot,
+  .print-cols-2 .chart-responsive .plot-container,
+  .print-cols-2 .chart-responsive .svg-container {
+    height: 230px !important;
+    min-height: 230px !important;
   }
 
   .panel-card,
@@ -515,11 +580,21 @@ body {
     box-shadow: 0 6px 18px rgba(0, 43, 73, 0.14);
   }
 
+  .print-cols-4 {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-cols-4 > .kpi-card--solid,
+  .print-cols-4 > .mantine-Card-root {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .panel-card,
   .mantine-Card-root,
-  .kpi-card--solid,
   .faq-panel,
-  .chart-responsive,
+  .print-cols-2 > .mantine-Card-root,
   .ag-theme-alpine {
     break-inside: avoid;
     page-break-inside: avoid;
