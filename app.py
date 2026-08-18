@@ -90,8 +90,9 @@ PERIOD_ORDER = df_serie["periodo"].drop_duplicates().tolist()
 DETAIL_PERIOD_ORDER = (
     df.sort_values("ordem_periodo")["periodo"].drop_duplicates().tolist()
 )
-# KPIs e análise detalhada usam o CSV curado; a série pode ter outros trimestres.
-LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
+DETAIL_LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else None
+# KPIs e header usam o trimestre mais recente da série; análise detalhada usa o CSV curado.
+LATEST = PERIOD_ORDER[-1] if PERIOD_ORDER else DETAIL_LATEST
 PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST]
 SERIES_ANCHOR_PERIOD = PERIOD_ORDER[0] if PERIOD_ORDER else None
 METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
@@ -100,7 +101,7 @@ METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
 def reload_runtime_data() -> None:
     """Recarrega CSVs em memória após upload (série e comparativo)."""
     global df, df_cmp, df_metro, df_metro_serie, df_serie
-    global PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS, SERIES_ANCHOR_PERIOD, METRO_PERIOD_ORDER
+    global PERIOD_ORDER, DETAIL_PERIOD_ORDER, DETAIL_LATEST, LATEST, PREVIOUS_PERIODS, SERIES_ANCHOR_PERIOD, METRO_PERIOD_ORDER
     df = pd.read_csv(CSV_PATH)
     df_cmp = pd.read_csv(COMPARE_CSV)
     df_metro = pd.read_csv(METRO_CSV)
@@ -110,7 +111,8 @@ def reload_runtime_data() -> None:
     DETAIL_PERIOD_ORDER = (
         df.sort_values("ordem_periodo")["periodo"].drop_duplicates().tolist()
     )
-    LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
+    DETAIL_LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else None
+    LATEST = PERIOD_ORDER[-1] if PERIOD_ORDER else DETAIL_LATEST
     PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST]
     SERIES_ANCHOR_PERIOD = PERIOD_ORDER[0] if PERIOD_ORDER else None
     METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
@@ -182,10 +184,75 @@ def latest_row(indicator: str, section: str) -> pd.Series:
     rows = df[(df["secao"] == section) & (df["indicador"] == indicator)]
     if rows.empty:
         raise ValueError(f"Indicador não encontrado: {section} / {indicator}")
-    preferred = rows[rows["periodo"] == LATEST]
+    target = DETAIL_LATEST or LATEST
+    preferred = rows[rows["periodo"] == target]
     if not preferred.empty:
         return preferred.iloc[0]
     return rows.sort_values("ordem_periodo").iloc[-1]
+
+
+def serie_indicator_row(indicator: str, period: str) -> pd.Series | None:
+    rows = df_serie[(df_serie["indicador"] == indicator) & (df_serie["periodo"] == period)]
+    if rows.empty:
+        return None
+    row = rows.iloc[0]
+    return pd.Series(
+        {
+            "valor": float(row["valor"]),
+            "unidade": str(row["unidade"]),
+            "periodo": str(row["periodo"]),
+        }
+    )
+
+
+def kpi_display_row(indicator: str, section: str) -> pd.Series:
+    """Valor em destaque: trimestre atual da série, com fallback ao CSV curado."""
+    current = serie_indicator_row(indicator, LATEST) if LATEST else None
+    if current is not None:
+        return current
+    return latest_row(indicator, section)
+
+
+def serie_variation_badge(
+    indicator: str,
+    unit: str,
+    scope: str,
+    label: str,
+) -> dmc.Badge | None:
+    current = serie_indicator_row(indicator, LATEST) if LATEST else None
+    if current is None:
+        return None
+    if scope == "trimestral":
+        if LATEST not in PERIOD_ORDER:
+            return None
+        idx = PERIOD_ORDER.index(LATEST)
+        prev_period = PERIOD_ORDER[idx - 1] if idx > 0 else None
+    else:
+        prev_period = year_ago_period(LATEST)
+    if not prev_period:
+        return None
+    previous = serie_indicator_row(indicator, prev_period)
+    if previous is None:
+        return None
+    cur = float(current["valor"])
+    prev = float(previous["valor"])
+    if unit == "%":
+        delta = cur - prev
+        text = f"{'+' if delta >= 0 else ''}{br(delta)} p.p. {label}"
+        direction = arrow_direction(delta)
+    else:
+        delta_pct = (cur - prev) / prev * 100 if prev else 0.0
+        text = f"{'+' if delta_pct >= 0 else ''}{br(delta_pct)}% {label}"
+        direction = arrow_direction(delta_pct)
+    return dmc.Badge(
+        [arrow_svg(direction, size=13), html.Span(text)],
+        color="gray",
+        variant="light",
+        radius="sm",
+        size="lg",
+        className="sig-badge",
+        styles={"label": {"textTransform": "none", "display": "inline-flex", "alignItems": "center", "gap": "6px"}},
+    )
 
 
 def series_values(indicator: str, section: str) -> list[float]:
@@ -964,11 +1031,26 @@ def kpi_card(
     color: str = THEME["teal_dark"],
     title: str | None = None,
 ) -> dmc.Card:
-    row = latest_row(indicator, section)
-    current_period = str(row["periodo"])
-    prev_period = year_ago_period(current_period)
-    prev_row = period_row(indicator, section, prev_period) if prev_period else None
+    row = kpi_display_row(indicator, section)
+    unit = str(row["unidade"])
     display_title = title or indicator_label(indicator)
+    use_serie = serie_indicator_row(indicator, LATEST) is not None if LATEST else False
+    prev_period = year_ago_period(LATEST) if LATEST else None
+    prev_row = (
+        serie_indicator_row(indicator, prev_period)
+        if use_serie and prev_period
+        else period_row(indicator, section, prev_period)
+        if prev_period
+        else None
+    )
+
+    if use_serie:
+        tri_badge = serie_variation_badge(indicator, unit, "trimestral", "no tri.")
+        ano_badge = serie_variation_badge(indicator, unit, "anual", "no ano")
+    else:
+        detail_row = latest_row(indicator, section)
+        tri_badge = sig_badge(detail_row, "trimestral", "no tri.")
+        ano_badge = sig_badge(detail_row, "anual", "no ano")
 
     children = [
         dmc.Text(
@@ -991,51 +1073,35 @@ def kpi_card(
             },
         ),
         dmc.Text(description, size="xs", style={"color": "rgba(255,255,255,0.82)"}),
-        dmc.Group(
-            [sig_badge(row, "trimestral", "no tri.")],
-            gap="xs",
-            mt="sm",
-        ),
     ]
+    if tri_badge is not None:
+        children.append(dmc.Group([tri_badge], gap="xs", mt="sm"))
 
-    if prev_row is not None:
-        children.append(
-            html.Div(
-                className="kpi-yoy-box",
-                children=[
-                    dmc.Text(
-                        "Ano anterior",
-                        size="xs",
-                        fw=700,
-                        tt="uppercase",
-                        style={
-                            "letterSpacing": "0.05em",
-                            "color": "rgba(255,255,255,0.72)",
-                        },
-                    ),
-                    dmc.Text(
-                        f"{value_text(prev_row)} · {short_tri_label(prev_period)}",
-                        size="sm",
-                        fw=700,
-                        mt=4,
-                        style={"color": "rgba(255,255,255,0.98)"},
-                    ),
-                    dmc.Group(
-                        [sig_badge(row, "anual", "no ano")],
-                        gap="xs",
-                        mt=8,
-                    ),
-                ],
-            )
-        )
-    else:
-        children.append(
-            dmc.Group(
-                [sig_badge(row, "anual", "no ano")],
-                gap="xs",
-                mt="sm",
-            )
-        )
+    if prev_row is not None and prev_period:
+        yoy_children = [
+            dmc.Text(
+                "Ano anterior",
+                size="xs",
+                fw=700,
+                tt="uppercase",
+                style={
+                    "letterSpacing": "0.05em",
+                    "color": "rgba(255,255,255,0.72)",
+                },
+            ),
+            dmc.Text(
+                f"{value_text(prev_row)} · {short_tri_label(prev_period)}",
+                size="sm",
+                fw=700,
+                mt=4,
+                style={"color": "rgba(255,255,255,0.98)"},
+            ),
+        ]
+        if ano_badge is not None:
+            yoy_children.append(dmc.Group([ano_badge], gap="xs", mt=8))
+        children.append(html.Div(className="kpi-yoy-box", children=yoy_children))
+    elif ano_badge is not None:
+        children.append(dmc.Group([ano_badge], gap="xs", mt="sm"))
 
     return dmc.Card(
         className="kpi-card kpi-card--solid",
@@ -1290,7 +1356,7 @@ def variation_bar_chart(section: str, scope: str, unit_filter: str = "Mil pessoa
     """Barras horizontais da variação percentual, separando altas e quedas."""
     subset = df[
         (df["secao"] == section)
-        & (df["periodo"] == LATEST)
+        & (df["periodo"] == (DETAIL_LATEST or LATEST))
         & (df["unidade"] == unit_filter)
     ].copy()
     column = f"variacao_{scope}_pct"
@@ -1498,9 +1564,9 @@ if not _server_secret:
 server.secret_key = _server_secret
 server.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 
-_desoc = latest_row("Taxa de desocupação", "Mercado de trabalho")
-_ocup = latest_row("Ocupadas", "Mercado de trabalho")
-_rend = latest_row("Rendimento médio mensal real habitual", "Rendimento")
+_desoc = kpi_display_row("Taxa de desocupação", "Mercado de trabalho")
+_ocup = kpi_display_row("Ocupadas", "Mercado de trabalho")
+_rend = kpi_display_row("Rendimento médio mensal real habitual", "Rendimento")
 
 header = dmc.Paper(
     className="app-header",
