@@ -449,3 +449,105 @@ body {
     font-size: 0.52rem !important;
   }
 }
+
+/* Impressão — A4 horizontal, fidelidade visual ao HTML */
+@page {
+  size: A4 landscape;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 100%;
+    max-width: none;
+    overflow: visible !important;
+    background: var(--bg) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .app-header {
+    position: static !important;
+    width: 100%;
+    box-shadow: none;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .app-main {
+    padding-top: 0 !important;
+  }
+
+  .app-shell,
+  .mantine-Container-root {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .mantine-Container-root {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .panel-card,
+  .mantine-Card-root,
+  .kpi-card--solid,
+  .kpi-yoy-box,
+  .faq-panel,
+  .faq-sidebar,
+  .faq-accordion .mantine-Accordion-item,
+  .panel-narrative,
+  .app-header,
+  .mantine-Badge-root,
+  .main-tabs .mantine-Tabs-tab[data-active],
+  .sig-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .kpi-card--solid:hover {
+    transform: none;
+    box-shadow: 0 6px 18px rgba(0, 43, 73, 0.14);
+  }
+
+  .panel-card,
+  .mantine-Card-root,
+  .kpi-card--solid,
+  .faq-panel,
+  .chart-responsive,
+  .ag-theme-alpine {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .chart-responsive,
+  .chart-responsive .js-plotly-plot,
+  .chart-responsive .plot-container,
+  .chart-responsive .svg-container {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .ag-theme-alpine {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .main-tabs .mantine-Tabs-panel[data-active] {
+    display: block !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+
+  .modebar-container,
+  .js-plotly-plot .modebar {
+    display: none !important;
+  }
+}

@@ -1962,6 +1962,7 @@ explorer = dmc.Stack(
                                 dmc.Button("Baixar CSV filtrado", id="download-button",
                                            variant="filled", color="blue"),
                                 justify="flex-end", align="flex-end", h="100%",
+                                className="no-print",
                             ),
                             span={"base": 12, "md": 4},
                         ),
@@ -2627,6 +2628,7 @@ dashboard_shell = html.Div(
                     dmc.Group(
                         justify="flex-end",
                         mb="sm",
+                        className="no-print",
                         children=[
                             dmc.Button(
                                 "Sair",
@@ -2646,14 +2648,21 @@ dashboard_shell = html.Div(
                                     dmc.TabsTab("Ceará", value="ceara"),
                                     dmc.TabsTab("Comparativo", value="comparativo"),
                                     dmc.TabsTab("Capitais e RMs", value="capitais-rm"),
-                                    dmc.TabsTab("Atualizar dados", value="atualizar"),
+                                    dmc.TabsTab(
+                                        "Atualizar dados",
+                                        value="atualizar",
+                                        className="no-print",
+                                    ),
                                 ],
                                 mb="md",
+                                className="no-print",
                             ),
                             dmc.TabsPanel(ceara_analysis, value="ceara"),
                             dmc.TabsPanel(comparison_tab, value="comparativo"),
                             dmc.TabsPanel(metro_tab, value="capitais-rm"),
-                            dmc.TabsPanel(update_tab, value="atualizar"),
+                            dmc.TabsPanel(
+                                update_tab, value="atualizar", className="no-print"
+                            ),
                         ],
                     ),
                     footer,
