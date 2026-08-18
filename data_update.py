@@ -152,7 +152,7 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
             "upload dos 4 trimestres mais recentes."
         )
 
-    series_frame, series_audit = extract_series.build_series(PNAD_DIR, last_n=4)
+    series_frame, series_audit = extract_series.build_series(PNAD_DIR)
     extract_series.OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     series_frame.to_csv(
         extract_series.OUTPUT_CSV,
@@ -192,7 +192,7 @@ def regenerate_csvs(*, force_series: bool = True) -> dict:
         encoding="utf-8",
     )
 
-    metro_serie, metro_serie_audit = extract_capitals_rm.build_series(PNAD_DIR, last_n=4)
+    metro_serie, metro_serie_audit = extract_capitals_rm.build_series(PNAD_DIR)
     extract_capitals_rm.OUTPUT_SERIE_CSV.parent.mkdir(parents=True, exist_ok=True)
     metro_serie.to_csv(
         extract_capitals_rm.OUTPUT_SERIE_CSV,

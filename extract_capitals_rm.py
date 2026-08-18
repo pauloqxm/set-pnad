@@ -268,7 +268,7 @@ def extract_focus_metrics(pdf_path: Path) -> dict[str, dict[str, dict[str, float
     return found
 
 
-def build_series(folder: Path | None = None, *, last_n: int = 4) -> tuple[pd.DataFrame, dict]:
+def build_series(folder: Path | None = None, *, last_n: int | None = None) -> tuple[pd.DataFrame, dict]:
     folder = folder or PNAD_DIR
     pdfs = extract_series.list_quadro_pdfs(folder)
     if not pdfs:
@@ -278,7 +278,12 @@ def build_series(folder: Path | None = None, *, last_n: int = 4) -> tuple[pd.Dat
         )
         pdfs = [(fallback, re.search(r"pnadc_(\d{6})_", fallback.name, re.I).group(1), label, order)]
 
-    selected = pdfs[-last_n:]
+    if last_n is None:
+        selected = extract_series.select_pdfs_yoy_window(pdfs)
+    else:
+        selected = pdfs[-last_n:]
+    if not selected:
+        raise ValueError("Nenhum PDF encontrado na janela do mesmo trimestre do ano anterior.")
     records: list[dict] = []
     for path, code, label, order in selected:
         focus = extract_focus_metrics(path)
@@ -313,6 +318,8 @@ def build_series(folder: Path | None = None, *, last_n: int = 4) -> tuple[pd.Dat
         "pasta": str(folder.resolve()),
         "arquivos_usados": [path.name for path, *_ in selected],
         "periodos": frame["periodo"].drop_duplicates().tolist(),
+        "trimestre_atual": selected[-1][2],
+        "trimestre_ano_anterior": selected[0][2],
         "locais": list(SERIE_LOCAIS),
         "linhas_csv": len(frame),
     }
@@ -324,7 +331,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pdf", type=Path, help="Caminho do quadro sintético (snapshot)")
     parser.add_argument("--output", type=Path, default=OUTPUT_CSV)
     parser.add_argument("--serie-output", type=Path, default=OUTPUT_SERIE_CSV)
-    parser.add_argument("--last-n", type=int, default=4)
+    parser.add_argument("--last-n", type=int, default=None)
     return parser.parse_args()
 
 
@@ -337,7 +344,7 @@ def main() -> None:
     AUDIT_JSON.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"CSV capitais/RMs criado: {args.output} ({len(frame)} linhas)")
 
-    serie, serie_audit = build_series(PNAD_DIR, last_n=args.last_n)
+    serie, serie_audit = build_series(PNAD_DIR)
     args.serie_output.parent.mkdir(parents=True, exist_ok=True)
     serie.to_csv(args.serie_output, index=False, encoding="utf-8-sig", float_format="%.1f")
     SERIE_AUDIT_JSON.write_text(

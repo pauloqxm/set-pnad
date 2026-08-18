@@ -92,14 +92,15 @@ DETAIL_PERIOD_ORDER = (
 )
 # KPIs e análise detalhada usam o CSV curado; a série pode ter outros trimestres.
 LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
-PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
+PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST]
+SERIES_ANCHOR_PERIOD = PERIOD_ORDER[0] if PERIOD_ORDER else None
 METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
 
 
 def reload_runtime_data() -> None:
     """Recarrega CSVs em memória após upload (série e comparativo)."""
     global df, df_cmp, df_metro, df_metro_serie, df_serie
-    global PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS, METRO_PERIOD_ORDER
+    global PERIOD_ORDER, DETAIL_PERIOD_ORDER, LATEST, PREVIOUS_PERIODS, SERIES_ANCHOR_PERIOD, METRO_PERIOD_ORDER
     df = pd.read_csv(CSV_PATH)
     df_cmp = pd.read_csv(COMPARE_CSV)
     df_metro = pd.read_csv(METRO_CSV)
@@ -110,7 +111,8 @@ def reload_runtime_data() -> None:
         df.sort_values("ordem_periodo")["periodo"].drop_duplicates().tolist()
     )
     LATEST = DETAIL_PERIOD_ORDER[-1] if DETAIL_PERIOD_ORDER else PERIOD_ORDER[-1]
-    PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST][-3:]
+    PREVIOUS_PERIODS = [p for p in PERIOD_ORDER if p != LATEST]
+    SERIES_ANCHOR_PERIOD = PERIOD_ORDER[0] if PERIOD_ORDER else None
     METRO_PERIOD_ORDER = df_metro_serie["periodo"].drop_duplicates().tolist()
 
 
@@ -831,10 +833,8 @@ def metro_summary_card(
 
 
 def metro_line_chart(indicator: str) -> dcc.Graph:
-    """Linha: trimestre atual + 3 anteriores (Fortaleza, RM Fortaleza e Ceará)."""
+    """Linha desde o mesmo trimestre do ano anterior (Fortaleza, RM e Ceará)."""
     periods = METRO_PERIOD_ORDER or PERIOD_ORDER
-    if len(periods) > 4:
-        periods = periods[-4:]
     unit = "%" if indicator.startswith("Taxa") else "R$"
     series_defs = [
         ("Fortaleza", THEME["navy"], "metro"),
@@ -1055,6 +1055,17 @@ def series_scale(unit: str) -> float:
     return 1
 
 
+def series_window_caption() -> str:
+    if SERIES_ANCHOR_PERIOD and LATEST and SERIES_ANCHOR_PERIOD != LATEST:
+        return (
+            f"desde {short_tri_label(SERIES_ANCHOR_PERIOD)} "
+            f"(mesmo trimestre do ano anterior) até {short_tri_label(LATEST)}"
+        )
+    if LATEST:
+        return f"trimestre {short_tri_label(LATEST)}"
+    return "evolução recente"
+
+
 def series_chart_data(indicators: list[str], scale: float = 1.0) -> list[dict]:
     data = []
     for period in PERIOD_ORDER:
@@ -1071,7 +1082,7 @@ def series_chart_data(indicators: list[str], scale: float = 1.0) -> list[dict]:
 
 
 def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph:
-    """Linha do trimestre atual + 3 anteriores, com rótulos formatados."""
+    """Linha desde o mesmo trimestre do ano anterior, com rótulos formatados."""
     scale = series_scale(unit)
     figure = go.Figure()
     colors = CHART_COLORS
@@ -1079,7 +1090,9 @@ def series_line_chart(indicators: list[str], title: str, unit: str) -> dcc.Graph
     text_positions = ("top center", "bottom center", "middle right", "top left")
 
     for index, indicator in enumerate(indicators):
-        rows = df_serie[df_serie["indicador"] == indicator].sort_values("ordem_periodo")
+        rows = df_serie[
+            (df_serie["indicador"] == indicator) & (df_serie["periodo"].isin(PERIOD_ORDER))
+        ].sort_values("ordem_periodo")
         if rows.empty:
             continue
         values = [float(v) * scale for v in rows["valor"]]
@@ -1609,7 +1622,7 @@ how_to_read = dmc.Card(
         dmc.Title("Como ler os dados", order=4, mb="xs", style={"color": THEME["navy"]}),
         dmc.Text(
             f"A análise usa os quadros sintéticos da pasta pnad/. O trimestre atual é {LATEST}; "
-            f"os gráficos de linha comparam esse resultado com {', '.join(PREVIOUS_PERIODS)}. "
+            f"os gráficos de linha mostram a evolução {series_window_caption()}. "
             "Nas tabelas do trimestre atual, a variação trimestral e a interanual trazem também "
             "a situação estatística do IBGE (cresceu, decresceu ou estável).",
             size="sm",
@@ -1665,7 +1678,7 @@ section1 = dmc.Stack(
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
             children=[
-                dmc.Text("Taxas principais (%) — atual e 3 trimestres anteriores", fw=600, mb="sm"),
+                dmc.Text(f"Taxas principais (%) — {series_window_caption()}", fw=600, mb="sm"),
                 line_chart(
                     ["Taxa de desocupação", "Nível da ocupação",
                      "Taxa de participação na força de trabalho"],
@@ -1688,7 +1701,7 @@ section2 = dmc.Stack(
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
             children=[
-                dmc.Text("Pessoas de 14 anos ou mais — atual e 3 trimestres anteriores", fw=600, mb="sm"),
+                dmc.Text(f"Pessoas de 14 anos ou mais — {series_window_caption()}", fw=600, mb="sm"),
                 grouped_bar_chart(
                     ["Ocupadas", "Desocupadas", "Fora da força de trabalho"],
                     "Mercado de trabalho", "", scale=1000,
@@ -1811,7 +1824,7 @@ section6 = dmc.Stack(
         dmc.Card(
             withBorder=True, radius="md", padding="lg",
             children=[
-                dmc.Text("Taxas de subutilização (%) — atual e 3 trimestres anteriores", fw=600, mb="sm"),
+                dmc.Text(f"Taxas de subutilização (%) — {series_window_caption()}", fw=600, mb="sm"),
                 line_chart(
                     [
                         "Taxa composta de subutilização da força de trabalho",
@@ -1925,7 +1938,7 @@ ceara_analysis = dmc.Stack(
         dmc.Stack(
             gap="md",
             children=[
-                section_title("0", "Evolução recente — atual vs. 3 trimestres anteriores"),
+                section_title("0", f"Evolução recente — {series_window_caption()}"),
                 narrative(
                     dmc.Text(
                         f"Série montada a partir dos PDFs em pnad/. "
@@ -2313,7 +2326,8 @@ metro_tab = dmc.Stack(
                     children=[
                         dmc.Text("Taxa de desocupação — série recente", fw=600, mb=4),
                         dmc.Text(
-                            "Trimestre atual e os três anteriores: Fortaleza, RM Fortaleza e Ceará.",
+                            f"Série recente ({series_window_caption()}): "
+                            "Fortaleza, RM Fortaleza e Ceará.",
                             size="xs",
                             c="dimmed",
                             mb="sm",
@@ -2328,7 +2342,8 @@ metro_tab = dmc.Stack(
                     children=[
                         dmc.Text("Rendimento médio mensal — série recente", fw=600, mb=4),
                         dmc.Text(
-                            "Trimestre atual e os três anteriores: Fortaleza, RM Fortaleza e Ceará.",
+                            f"Série recente ({series_window_caption()}): "
+                            "Fortaleza, RM Fortaleza e Ceará.",
                             size="xs",
                             c="dimmed",
                             mb="sm",
@@ -2917,6 +2932,7 @@ def update_metro_chart(indicator: str, tipo_filtro: str | None):
             dmc.Text(f"Capitais e RMs — {indicator_label(indicator)}", fw=600),
             dmc.Text(
                 "Ordenação decrescente pelo valor (maior no topo). "
+                f"Série: {series_window_caption()}. "
                 "Fortaleza e RM Fortaleza em azul escuro. "
                 "O quadro do IBGE para capitais/RMs traz só estes dois indicadores.",
                 size="xs",

@@ -9,12 +9,14 @@
     "pnadc_202601_trimestre_quadroSintetico.pdf"
   ],
   "arquivos_usados": [
+    "pnadc_202501_trimestre_quadroSintetico.pdf",
     "pnadc_202502_trimestre_quadroSintetico.pdf",
     "pnadc_202503_trimestre_quadroSintetico.pdf",
     "pnadc_202504_trimestre_quadroSintetico.pdf",
     "pnadc_202601_trimestre_quadroSintetico.pdf"
   ],
   "periodos": [
+    "jan-fev-mar/2025",
     "abr-mai-jun/2025",
     "jul-ago-set/2025",
     "out-nov-dez/2025",
@@ -38,9 +40,10 @@
     "Taxa de participação na força de trabalho",
     "Trabalhadores por conta própria"
   ],
-  "linhas_csv": 64,
+  "linhas_csv": 80,
   "trimestre_atual": "jan-fev-mar/2026",
-  "tres_anteriores": [
+  "trimestre_ano_anterior": "jan-fev-mar/2025",
+  "periodos_intermedios": [
     "abr-mai-jun/2025",
     "jul-ago-set/2025",
     "out-nov-dez/2025"

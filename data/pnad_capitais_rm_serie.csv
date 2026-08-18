@@ -1,4 +1,8 @@
 ﻿codigo_trimestre,periodo,ordem_periodo,nome_curto,indicador,unidade,valor,arquivo_pdf,fonte
+202501,jan-fev-mar/2025,20251,Fortaleza,Rendimento médio mensal real habitual,R$,3352.0,pnadc_202501_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
+202501,jan-fev-mar/2025,20251,Fortaleza,Taxa de desocupação,%,8.7,pnadc_202501_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
+202501,jan-fev-mar/2025,20251,RM Fortaleza,Rendimento médio mensal real habitual,R$,2918.0,pnadc_202501_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
+202501,jan-fev-mar/2025,20251,RM Fortaleza,Taxa de desocupação,%,8.2,pnadc_202501_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
 202502,abr-mai-jun/2025,20252,Fortaleza,Rendimento médio mensal real habitual,R$,3350.0,pnadc_202502_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
 202502,abr-mai-jun/2025,20252,Fortaleza,Taxa de desocupação,%,7.1,pnadc_202502_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"
 202502,abr-mai-jun/2025,20252,RM Fortaleza,Rendimento médio mensal real habitual,R$,2947.0,pnadc_202502_trimestre_quadroSintetico.pdf,"IBGE, PNAD Contínua Trimestral — quadro sintético (capitais/RMs)"

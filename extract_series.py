@@ -1,8 +1,8 @@
 """Extrai série temporal do Ceará a partir dos quadros sintéticos em pnad/.
 
 Cada arquivo pnadc_YYYYQQ_trimestre_quadroSintetico.pdf contribui com o valor
-do trimestre de referência (3ª coluna das estimativas). O dashboard usa o
-trimestre mais recente e os três anteriores.
+do trimestre de referência (3ª coluna das estimativas). O dashboard compara o
+trimestre atual com os trimestres desde o mesmo período do ano anterior.
 """
 
 from __future__ import annotations
@@ -193,7 +193,20 @@ def extract_quarter(pdf_path: Path, code: str, label: str, order: int) -> list[d
     return records
 
 
-def build_series(folder: Path, last_n: int = 4) -> tuple[pd.DataFrame, dict]:
+def select_pdfs_yoy_window(
+    pdfs: list[tuple[Path, str, str, int]],
+) -> list[tuple[Path, str, str, int]]:
+    """PDFs do mesmo trimestre do ano anterior até o mais recente."""
+    if not pdfs:
+        return []
+    _path, code, _label, latest_order = pdfs[-1]
+    year = int(code[:4])
+    quarter = int(code[4:6])
+    anchor_order = (year - 1) * 10 + quarter
+    return [item for item in pdfs if anchor_order <= item[3] <= latest_order]
+
+
+def build_series(folder: Path, last_n: int | None = None) -> tuple[pd.DataFrame, dict]:
     pdfs = list_quadro_pdfs(folder)
     if not pdfs:
         raise FileNotFoundError(
@@ -201,7 +214,14 @@ def build_series(folder: Path, last_n: int = 4) -> tuple[pd.DataFrame, dict]:
             "Espere arquivos pnadc_YYYYQQ_trimestre_quadroSintetico.pdf"
         )
 
-    selected = pdfs[-last_n:] if last_n else pdfs
+    if last_n is None:
+        selected = select_pdfs_yoy_window(pdfs)
+    elif last_n > 0:
+        selected = pdfs[-last_n:]
+    else:
+        selected = pdfs
+    if not selected:
+        raise ValueError("Nenhum PDF encontrado na janela do mesmo trimestre do ano anterior.")
     records: list[dict] = []
     for path, code, label, order in selected:
         print(f"  - Lendo {path.name} ({label})...", flush=True)
@@ -223,19 +243,26 @@ def build_series(folder: Path, last_n: int = 4) -> tuple[pd.DataFrame, dict]:
         "indicadores": sorted(frame["indicador"].unique().tolist()),
         "linhas_csv": len(frame),
         "trimestre_atual": selected[-1][2],
-        "tres_anteriores": [item[2] for item in selected[:-1]],
+        "trimestre_ano_anterior": selected[0][2],
+        "periodos_intermedios": [item[2] for item in selected[1:-1]],
     }
     return frame, audit
 
 
-def csv_is_up_to_date(output: Path, folder: Path, last_n: int) -> bool:
-    """True se o CSV já cobre exatamente os PDFs mais recentes de pnad/."""
+def csv_is_up_to_date(output: Path, folder: Path, last_n: int | None = None) -> bool:
+    """True se o CSV já cobre exatamente os PDFs da janela YoY em pnad/."""
     if not output.exists():
         return False
     pdfs = list_quadro_pdfs(folder)
     if not pdfs:
         return False
-    selected_names = {path.name for path, *_ in (pdfs[-last_n:] if last_n else pdfs)}
+    if last_n is None:
+        selected = select_pdfs_yoy_window(pdfs)
+    elif last_n > 0:
+        selected = pdfs[-last_n:]
+    else:
+        selected = pdfs
+    selected_names = {path.name for path, *_ in selected}
     try:
         existing = pd.read_csv(output, usecols=["arquivo_pdf"])
     except (ValueError, pd.errors.ParserError, OSError):
@@ -250,8 +277,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--last-n",
         type=int,
-        default=4,
-        help="Quantidade de trimestres mais recentes (atual + anteriores).",
+        default=None,
+        help="Quantidade fixa de trimestres (padrão: do mesmo tri. do ano anterior até o atual).",
     )
     parser.add_argument(
         "--force",
